@@ -275,11 +275,11 @@ class AdditionalValidationTests(TestCase):
         from io import BytesIO
         from .utils import import_students_from_csv
         csv_data = (
-            'roll_number,name,email,course,semester,phone\\n'
-            '123,Invalid Roll,bad@example.com,B.Tech CSE,5,9876543210\\n'
-            '992401030099,Invalid Course,course@example.com,Unknown,5,9876543210\\n'
-            '992401030098,Invalid Semester,semester@example.com,B.Tech CSE,9,9876543210\\n'
-            '992401030097,Invalid Phone,phone@example.com,B.Tech CSE,5,12345\\n'
+            'roll_number,name,email,course,semester,phone\n'
+            '123,Invalid Roll,bad@example.com,B.Tech CSE,5,9876543210\n'
+            '992401030099,Invalid Course,course@example.com,Unknown,5,9876543210\n'
+            '992401030098,Invalid Semester,semester@example.com,B.Tech CSE,9,9876543210\n'
+            '992401030097,Invalid Phone,phone@example.com,B.Tech CSE,5,12345\n'
         )
         success, errors = import_students_from_csv(BytesIO(csv_data.encode('utf-8')))
         self.assertEqual(success, 0)
@@ -290,8 +290,8 @@ class AdditionalValidationTests(TestCase):
         from io import BytesIO
         from .utils import import_students_from_csv
         csv_data = (
-            'roll_number,name,email,course,semester,phone\\n'
-            '992401030099,Blank Phone,blank@example.com,B.Tech CSE,5,\\n'
+            'roll_number,name,email,course,semester,phone\n'
+            '992401030099,Blank Phone,blank@example.com,B.Tech CSE,5,\n'
         )
         success, errors = import_students_from_csv(BytesIO(csv_data.encode('utf-8')))
         self.assertEqual(success, 0)
