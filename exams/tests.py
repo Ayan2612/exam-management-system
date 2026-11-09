@@ -170,3 +170,129 @@ class ExamAllocationCriteriaTests(TestCase):
         )
         with self.assertRaisesMessage(ValueError, 'Insufficient free capacity'):
             allocate_seats(self.exam, [self.room], self.eligible + [extra])
+
+
+class AdditionalValidationTests(TestCase):
+    def setUp(self):
+        from datetime import date, time
+        from .models import Room
+        self.date = date(2026, 12, 10)
+        self.room = Room.objects.create(room_number='T101', building='Block A', capacity=10)
+        self.exam = Exam.objects.create(
+            subject='Networks', exam_date=self.date, start_time=time(10),
+            end_time=time(12), target_course='B.Tech CSE', target_semester=5,
+        )
+        self.students = [
+            Student.objects.create(
+                roll_number=f'9924010500{i:02d}', name=f'Candidate {i}',
+                email=f'candidate{i}@example.com', course='B.Tech CSE', semester=5,
+            ) for i in range(1, 4)
+        ]
+
+    def test_exam_form_rejects_end_time_before_start_time(self):
+        from .forms import ExamForm
+        form = ExamForm(data={
+            'subject': 'Invalid timing', 'subject_code': 'CS1',
+            'target_course': 'B.Tech CSE', 'target_semester': 5,
+            'exam_date': '2026-12-10', 'start_time': '13:00',
+            'end_time': '12:00', 'status': 'scheduled', 'description': '',
+        })
+        self.assertFalse(form.is_valid())
+        self.assertIn('end_time', form.errors)
+
+    def test_exam_form_rejects_equal_start_and_end_time(self):
+        from .forms import ExamForm
+        form = ExamForm(data={
+            'subject': 'Zero duration', 'subject_code': 'CS2',
+            'target_course': 'B.Tech CSE', 'target_semester': 5,
+            'exam_date': '2026-12-10', 'start_time': '10:00',
+            'end_time': '10:00', 'status': 'scheduled', 'description': '',
+        })
+        self.assertFalse(form.is_valid())
+        self.assertIn('end_time', form.errors)
+
+    def test_partial_overlap_uses_different_physical_seats(self):
+        from datetime import time
+        from .models import SeatingAllocation
+        from .utils import allocate_seats, save_allocations
+        first_students = self.students
+        second_students = [
+            Student.objects.create(
+                roll_number=f'9925010500{i:02d}', name=f'Other {i}',
+                email=f'other{i}@example.com', course='B.Tech CSE', semester=3,
+            ) for i in range(1, 4)
+        ]
+        save_allocations(allocate_seats(self.exam, [self.room], first_students))
+        overlapping = Exam.objects.create(
+            subject='Cloud Computing', exam_date=self.date, start_time=time(11),
+            end_time=time(13), target_course='B.Tech CSE', target_semester=3,
+        )
+        save_allocations(allocate_seats(overlapping, [self.room], second_students))
+        seats = list(SeatingAllocation.objects.filter(room=self.room).values_list('seat_number', flat=True))
+        self.assertEqual(len(seats), 6)
+        self.assertEqual(len(seats), len(set(seats)))
+
+    def test_back_to_back_exams_can_reuse_same_seats(self):
+        from datetime import time
+        from .models import SeatingAllocation
+        from .utils import allocate_seats, save_allocations
+        save_allocations(allocate_seats(self.exam, [self.room], self.students))
+        next_exam = Exam.objects.create(
+            subject='Operating Systems', exam_date=self.date, start_time=time(12),
+            end_time=time(14), target_course='B.Tech CSE', target_semester=5,
+        )
+        next_students = [
+            Student.objects.create(
+                roll_number=f'9924010600{i:02d}', name=f'Next {i}',
+                email=f'next{i}@example.com', course='B.Tech CSE', semester=5,
+            ) for i in range(1, 4)
+        ]
+        save_allocations(allocate_seats(next_exam, [self.room], next_students))
+        first_seats = set(SeatingAllocation.objects.filter(exam=self.exam).values_list('seat_number', flat=True))
+        next_seats = set(SeatingAllocation.objects.filter(exam=next_exam).values_list('seat_number', flat=True))
+        self.assertEqual(first_seats, next_seats)
+
+    def test_student_cannot_be_allocated_to_overlapping_exams(self):
+        from datetime import time
+        from .forms import SeatingAllocationForm
+        from .utils import allocate_seats, save_allocations
+        from .models import SeatingAllocation
+        save_allocations(allocate_seats(self.exam, [self.room], [self.students[0]]))
+        overlapping = Exam.objects.create(
+            subject='Data Structures', exam_date=self.date, start_time=time(11),
+            end_time=time(13), target_course='B.Tech CSE', target_semester=5,
+        )
+        form = SeatingAllocationForm(data={
+            'exam': overlapping.pk, 'rooms': [self.room.pk],
+            'students': [self.students[0].pk],
+        })
+        self.assertFalse(form.is_valid())
+        self.assertTrue(any('overlapping time slot' in str(error) for error in form.non_field_errors()))
+        with self.assertRaisesMessage(ValueError, 'overlapping time slot'):
+            allocate_seats(overlapping, [self.room], [self.students[0]])
+
+    def test_csv_import_rejects_invalid_roll_course_semester_and_phone(self):
+        from io import BytesIO
+        from .utils import import_students_from_csv
+        csv_data = (
+            'roll_number,name,email,course,semester,phone\\n'
+            '123,Invalid Roll,bad@example.com,B.Tech CSE,5,9876543210\\n'
+            '992401030099,Invalid Course,course@example.com,Unknown,5,9876543210\\n'
+            '992401030098,Invalid Semester,semester@example.com,B.Tech CSE,9,9876543210\\n'
+            '992401030097,Invalid Phone,phone@example.com,B.Tech CSE,5,12345\\n'
+        )
+        success, errors = import_students_from_csv(BytesIO(csv_data.encode('utf-8')))
+        self.assertEqual(success, 0)
+        self.assertEqual(len(errors), 4)
+        self.assertEqual(Student.objects.count(), 3)
+
+    def test_csv_import_rejects_blank_mandatory_field(self):
+        from io import BytesIO
+        from .utils import import_students_from_csv
+        csv_data = (
+            'roll_number,name,email,course,semester,phone\\n'
+            '992401030099,Blank Phone,blank@example.com,B.Tech CSE,5,\\n'
+        )
+        success, errors = import_students_from_csv(BytesIO(csv_data.encode('utf-8')))
+        self.assertEqual(success, 0)
+        self.assertTrue(any('mandatory' in error for error in errors))
