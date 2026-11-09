@@ -85,6 +85,8 @@ class Exam(models.Model):
 
     subject = models.CharField(max_length=150, verbose_name='Subject Name')
     subject_code = models.CharField(max_length=20, blank=True, null=True, verbose_name='Subject Code')
+    target_course = models.CharField(max_length=50, choices=Student.COURSE_CHOICES, blank=True, default='', verbose_name='Applicable Course')
+    target_semester = models.IntegerField(choices=Student.SEMESTER_CHOICES, blank=True, null=True, verbose_name='Applicable Semester')
     exam_date = models.DateField(verbose_name='Exam Date')
     start_time = models.TimeField(verbose_name='Start Time')
     end_time = models.TimeField(verbose_name='End Time')
