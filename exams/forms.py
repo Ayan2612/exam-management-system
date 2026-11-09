@@ -4,6 +4,7 @@ Demonstrates ModelForms - Module 4, CO3
 """
 from django import forms
 from django.contrib.auth.forms import AuthenticationForm
+from django.core.exceptions import ValidationError
 from .models import Student, Room, Exam, SeatingAllocation
 
 
@@ -68,6 +69,14 @@ class RoomForm(StyledFormMixin, forms.ModelForm):
 
 class ExamForm(StyledFormMixin, forms.ModelForm):
     """Form for creating/editing exams"""
+    def clean(self):
+        cleaned = super().clean()
+        start = cleaned.get('start_time')
+        end = cleaned.get('end_time')
+        if start and end and end <= start:
+            self.add_error('end_time', 'End time must be later than start time.')
+        return cleaned
+
     class Meta:
         model = Exam
         fields = ['subject', 'subject_code', 'target_course', 'target_semester', 'exam_date', 'start_time', 'end_time', 'status', 'description']
@@ -129,6 +138,22 @@ class SeatingAllocationForm(forms.Form):
                 raise forms.ValidationError(
                     "Some selected students do not meet this exam's course/semester criteria. "
                     "Only eligible students can be allocated."
+                )
+        if exam and students:
+            from .models import Exam as ExamModel
+            overlapping_exam_ids = ExamModel.objects.filter(
+                exam_date=exam.exam_date,
+                start_time__lt=exam.end_time,
+                end_time__gt=exam.start_time,
+            ).exclude(pk=exam.pk).values_list('pk', flat=True)
+            clashes = SeatingAllocation.objects.filter(
+                student__in=students, exam_id__in=overlapping_exam_ids
+            ).select_related('student', 'exam')
+            if clashes.exists():
+                clash = clashes.first()
+                raise forms.ValidationError(
+                    f"{clash.student.name} ({clash.student.roll_number}) is already allocated "
+                    f"to {clash.exam.subject} during an overlapping time slot."
                 )
         if rooms and students and exam:
             from .utils import room_capacity_available
