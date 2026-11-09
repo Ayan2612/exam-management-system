@@ -70,7 +70,7 @@ class ExamForm(StyledFormMixin, forms.ModelForm):
     """Form for creating/editing exams"""
     class Meta:
         model = Exam
-        fields = ['subject', 'subject_code', 'exam_date', 'start_time', 'end_time', 'status', 'description']
+        fields = ['subject', 'subject_code', 'target_course', 'target_semester', 'exam_date', 'start_time', 'end_time', 'status', 'description']
         widgets = {
             'subject': forms.TextInput(attrs={'placeholder': 'e.g., Data Structures & Algorithms'}),
             'subject_code': forms.TextInput(attrs={'placeholder': 'e.g., CS301'}),
