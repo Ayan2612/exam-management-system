@@ -178,101 +178,94 @@ def _upsert_imported_student(roll, name, email, course, semester, phone):
     return Student.objects.create(**defaults), True
 
 
-def import_students_from_csv(file):
-    """
-    Import students from a CSV file.
-    Existing records are matched by roll number, then email, so changing a
-    roll number does not orphan seating allocations or other foreign keys.
-    Returns: (success_count, errors_list)
-    """
-    import csv, io
+def _validate_import_row(roll, name, email, course, semester, phone):
+    """Validate the six mandatory student import fields before writing anything."""
+    from django.core.validators import validate_email
+    from django.core.exceptions import ValidationError
+    from .models import Student
 
+    if not all(str(value).strip() for value in (roll, name, email, course, semester, phone)):
+        raise ValueError("all six fields are mandatory")
+    if not (len(roll) == 12 and roll.isdigit() and roll.startswith('992')):
+        raise ValueError("roll_number must be a 12-digit JIIT-style number beginning with 992")
+    try:
+        validate_email(email)
+    except ValidationError:
+        raise ValueError("email is not a valid email address")
+    valid_courses = {value for value, _ in Student.COURSE_CHOICES}
+    if course not in valid_courses:
+        raise ValueError(f"course must be one of: {', '.join(sorted(valid_courses))}")
+    try:
+        semester_number = int(semester)
+    except (TypeError, ValueError):
+        raise ValueError("semester must be a whole number from 1 to 8")
+    max_semester = 6 if course == 'BCA' else 8
+    if not 1 <= semester_number <= max_semester:
+        raise ValueError(f"semester for {course} must be between 1 and {max_semester}")
+    if not (phone.isdigit() and len(phone) == 10):
+        raise ValueError("phone must contain exactly 10 digits")
+    return semester_number
+
+
+def import_students_from_csv(file):
+    """Import validated CSV rows; return (success_count, errors_list)."""
     success_count = 0
     errors = []
-
     try:
         decoded = file.read().decode('utf-8-sig')
         reader = csv.DictReader(io.StringIO(decoded))
-
-        required_cols = {'roll_number', 'name', 'email', 'course', 'semester', 'phone'}
-        if not required_cols.issubset(set(reader.fieldnames or [])):
-            return 0, [f"Missing required columns. Need: {', '.join(required_cols)}. Got: {', '.join(reader.fieldnames or [])}"]
-
+        required_cols = ['roll_number', 'name', 'email', 'course', 'semester', 'phone']
+        headers = [header.strip() for header in (reader.fieldnames or [])]
+        if not set(required_cols).issubset(set(headers)):
+            missing = [column for column in required_cols if column not in headers]
+            return 0, [f"Missing required columns: {', '.join(missing)}"]
+        reader.fieldnames = headers
         for row_num, row in enumerate(reader, start=2):
             try:
-                roll = row.get('roll_number', '').strip()
-                name = row.get('name', '').strip()
-                email = row.get('email', '').strip()
-                course = row.get('course', 'B.Tech CSE').strip()
-                semester = int(row.get('semester', 1))
-                phone = row.get('phone', '').strip()
-
-                if not all([roll, name, email, course, row.get('semester', '').strip(), phone]):
-                    errors.append(f"Row {row_num}: all six columns (roll_number, name, email, course, semester, phone) are required.")
-                    continue
-
-                student, created = _upsert_imported_student(
-                    roll, name, email, course, semester, phone
-                )
+                roll = (row.get('roll_number') or '').strip()
+                name = (row.get('name') or '').strip()
+                email = (row.get('email') or '').strip()
+                course = (row.get('course') or '').strip()
+                semester_raw = (row.get('semester') or '').strip()
+                phone = (row.get('phone') or '').strip()
+                semester = _validate_import_row(roll, name, email, course, semester_raw, phone)
+                _upsert_imported_student(roll, name, email, course, semester, phone)
                 success_count += 1
-
-            except Exception as e:
-                errors.append(f"Row {row_num}: {str(e)}")
-
-    except Exception as e:
-        errors.append(f"File read error: {str(e)}")
-
+            except Exception as exc:
+                errors.append(f"Row {row_num}: {exc}")
+    except Exception as exc:
+        errors.append(f"File read error: {exc}")
     return success_count, errors
 
 
 def import_students_from_excel(file):
-    """
-    Import students from an Excel file (.xlsx/.xls).
-    Returns: (success_count, errors_list)
-    """
-    from .models import Student
+    """Import validated .xlsx rows; return (success_count, errors_list)."""
     import openpyxl
-
     success_count = 0
     errors = []
-
     try:
-        wb = openpyxl.load_workbook(file)
-        ws = wb.active
-
-        headers = [str(cell.value).strip().lower() if cell.value else '' for cell in ws[1]]
+        workbook = openpyxl.load_workbook(file, read_only=True, data_only=True)
+        sheet = workbook.active
+        headers = [str(cell.value).strip().lower() if cell.value is not None else '' for cell in sheet[1]]
         required = ['roll_number', 'name', 'email', 'course', 'semester', 'phone']
-        for col in required:
-            if col not in headers:
-                return 0, [f"Missing required column: '{col}'. Found headers: {headers}"]
-
-        col_idx = {h: i for i, h in enumerate(headers)}
-
-        for row_num, row in enumerate(ws.iter_rows(min_row=2, values_only=True), start=2):
+        missing = [column for column in required if column not in headers]
+        if missing:
+            return 0, [f"Missing required columns: {', '.join(missing)}"]
+        indexes = {header: headers.index(header) for header in required}
+        for row_num, row in enumerate(sheet.iter_rows(min_row=2, values_only=True), start=2):
             try:
-                roll = str(row[col_idx['roll_number']] or '').strip()
-                name = str(row[col_idx['name']] or '').strip()
-                email = str(row[col_idx['email']] or '').strip()
-                course = str(row[col_idx.get('course', -1)] if col_idx.get('course', -1) >= 0 and col_idx.get('course', -1) < len(row) else 'B.Tech CSE' or 'B.Tech CSE').strip()
-                semester_val = row[col_idx['semester']] if 'semester' in col_idx else 1
-                semester = int(semester_val) if semester_val else 1
-                phone = str(row[col_idx.get('phone', -1)] if 'phone' in col_idx and col_idx['phone'] < len(row) else '' or '').strip()
-
-                if not all([roll, name, email, course, semester_val, phone]):
-                    errors.append(f"Row {row_num}: all six columns (roll_number, name, email, course, semester, phone) are required.")
-                    continue
-
-                _upsert_imported_student(
-                    roll, name, email, course or 'B.Tech CSE', semester, phone
-                )
+                values = [row[indexes[column]] if indexes[column] < len(row) else None for column in required]
+                roll, name, email, course, semester_raw, phone = [
+                    str(value).strip() if value is not None else '' for value in values
+                ]
+                semester = _validate_import_row(roll, name, email, course, semester_raw, phone)
+                _upsert_imported_student(roll, name, email, course, semester, phone)
                 success_count += 1
-
-            except Exception as e:
-                errors.append(f"Row {row_num}: {str(e)}")
-
-    except Exception as e:
-        errors.append(f"Excel file error: {str(e)}")
-
+            except Exception as exc:
+                errors.append(f"Row {row_num}: {exc}")
+        workbook.close()
+    except Exception as exc:
+        errors.append(f"Excel file error: {exc}")
     return success_count, errors
 
 
