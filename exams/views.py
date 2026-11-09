@@ -523,7 +523,7 @@ def clear_seating(request, exam_id):
 # ADMIT CARD & REPORTS - Module 6, CO5
 # ════════════════════════════════════════════════
 
-@login_required
+@login_required(login_url='student_login')
 def view_admit_card(request, allocation_id):
     """Render a student's own printable admit card, or allow staff access."""
     allocation = get_object_or_404(SeatingAllocation, pk=allocation_id)
@@ -532,7 +532,7 @@ def view_admit_card(request, allocation_id):
     return render(request, 'exams/admit_card.html', {'allocation': allocation})
 
 
-@login_required
+@login_required(login_url='student_login')
 def download_admit_card(request, allocation_id):
     """Download only the signed-in student's admit card, or allow staff access."""
     allocation = get_object_or_404(SeatingAllocation, pk=allocation_id)
