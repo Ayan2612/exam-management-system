@@ -483,10 +483,32 @@ def seating_plan(request):
         {'id': r.id, 'room_number': r.room_number, 'building': r.building, 'capacity': r.capacity}
         for r in Room.objects.filter(is_active=True)
     ]
-    exam_criteria = {
-        str(item.pk): {'course': item.target_course, 'semester': item.target_semester}
-        for item in Exam.objects.filter(status='scheduled')
-    }
+    exam_criteria = {}
+    scheduled_exams = Exam.objects.filter(status='scheduled')
+    active_rooms = list(Room.objects.filter(is_active=True))
+    for item in scheduled_exams:
+        overlapping_exam_ids = Exam.objects.filter(
+            exam_date=item.exam_date,
+            start_time__lt=item.end_time,
+            end_time__gt=item.start_time,
+        ).values_list('pk', flat=True)
+        occupied_by_room = {}
+        for room_id, seat_number in SeatingAllocation.objects.filter(
+            room_id__in=[room.pk for room in active_rooms],
+            exam_id__in=overlapping_exam_ids,
+        ).values_list('room_id', 'seat_number'):
+            occupied_by_room.setdefault(room_id, set()).add(seat_number)
+        exam_criteria[str(item.pk)] = {
+            'course': item.target_course,
+            'semester': item.target_semester,
+            'rooms': {
+                str(room.pk): {
+                    'capacity': room.capacity,
+                    'available': max(room.capacity - len(occupied_by_room.get(room.pk, set())), 0),
+                }
+                for room in active_rooms
+            },
+        }
     return render(request, 'exams/seating_plan.html', {
         'form': form,
         'rooms_data': json.dumps(rooms_data),
