@@ -85,7 +85,7 @@ class CSVUploadForm(forms.Form):
     """Form for uploading CSV/Excel student data"""
     file = forms.FileField(
         label='Upload CSV or Excel File',
-        help_text='Columns required: roll_number, name, email, course, semester',
+        help_text='Columns required: roll_number (12-digit JIIT-style, e.g. 992401030018), name, email; course and semester are optional',
         widget=forms.FileInput(attrs={
             'class': 'form-control',
             'accept': '.csv,.xlsx,.xls',
