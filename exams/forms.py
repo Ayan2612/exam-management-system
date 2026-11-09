@@ -230,7 +230,7 @@ class StudentPortalLookupForm(forms.Form):
         label='University roll number',
         widget=forms.TextInput(attrs={
             'class': 'form-control form-control-lg',
-            'placeholder': 'e.g. 24B15CS001',
+            'placeholder': 'e.g. 992401030018',
             'autocomplete': 'off',
             'autofocus': True,
         }),
