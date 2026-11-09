@@ -529,21 +529,30 @@ def clear_seating(request, exam_id):
 # ADMIT CARD & REPORTS - Module 6, CO5
 # ════════════════════════════════════════════════
 
-@login_required(login_url='student_login')
-def view_admit_card(request, allocation_id):
-    """Render a student's own printable admit card, or allow staff access."""
+def _admit_card_allocation(request, allocation_id):
+    """Resolve a staff request or a short-lived signed student roll-lookup token."""
     allocation = get_object_or_404(SeatingAllocation, pk=allocation_id)
-    if not (request.user.is_staff or request.user.is_superuser) and getattr(request.user, 'student_profile', None) != allocation.student:
-        return HttpResponseForbidden('You are not allowed to view this admit card.')
+    if request.user.is_authenticated and (request.user.is_staff or request.user.is_superuser):
+        return allocation
+    token = request.GET.get('token', '')
+    try:
+        payload = signing.loads(token, salt='exams.student.admit-card', max_age=15 * 60)
+    except (signing.BadSignature, signing.SignatureExpired):
+        raise PermissionDenied('Please look up your roll number again to access this admit card.')
+    if payload.get('allocation_id') != allocation.pk or payload.get('student_id') != allocation.student_id:
+        raise PermissionDenied('This admit-card link is not valid for this student.')
+    return allocation
+
+
+def view_admit_card(request, allocation_id):
+    """Render the admit card using a short-lived signed lookup token."""
+    allocation = _admit_card_allocation(request, allocation_id)
     return render(request, 'exams/admit_card.html', {'allocation': allocation})
 
 
-@login_required(login_url='student_login')
 def download_admit_card(request, allocation_id):
-    """Download only the signed-in student's admit card, or allow staff access."""
-    allocation = get_object_or_404(SeatingAllocation, pk=allocation_id)
-    if not (request.user.is_staff or request.user.is_superuser) and getattr(request.user, 'student_profile', None) != allocation.student:
-        return HttpResponseForbidden('You are not allowed to download this admit card.')
+    """Download the admit card using a short-lived signed lookup token."""
+    allocation = _admit_card_allocation(request, allocation_id)
 
     buffer = generate_admit_card_pdf(allocation)
 
