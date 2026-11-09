@@ -1,0 +1,38 @@
+{% extends 'exams/admin_base.html' %}
+
+{% block title %}Confirm Delete — EMS{% endblock %}
+{% block page_title %}Confirm Deletion{% endblock %}
+{% block page_subtitle %}This action cannot be undone{% endblock %}
+
+{% block content %}
+<div style="max-width:550px">
+  <div class="glass-card" style="padding:36px">
+    <div style="text-align:center;margin-bottom:28px">
+      <div style="width:70px;height:70px;border-radius:50%;background:rgba(239,68,68,0.15);border:2px solid rgba(239,68,68,0.3);display:flex;align-items:center;justify-content:center;font-size:2rem;margin:0 auto 16px">🗑️</div>
+      <h4 style="color:var(--text-primary);font-weight:700;margin-bottom:8px">Are you sure?</h4>
+      <p style="color:var(--text-muted)">You are about to delete:</p>
+    </div>
+
+    <div class="delete-warning-box">
+      <div style="font-weight:600;color:#fca5a5;font-size:0.95rem;text-align:center">{{ object_name }}</div>
+    </div>
+
+    <div class="alert-ems alert-danger">
+      <i class="bi bi-exclamation-triangle-fill"></i>
+      <span>This action is <strong>permanent</strong> and cannot be undone. All related data will also be deleted.</span>
+    </div>
+
+    <div style="display:flex;gap:12px;justify-content:center;margin-top:24px">
+      <form method="post">
+        {% csrf_token %}
+        <button type="submit" class="btn-danger-glow" style="padding:12px 28px">
+          <i class="bi bi-trash-fill"></i><span>Yes, Delete</span>
+        </button>
+      </form>
+      <a href="{% if custom_cancel %}{{ custom_cancel }}{% else %}{% url cancel_url %}{% endif %}" class="btn-ghost" style="padding:12px 28px">
+        <i class="bi bi-arrow-left"></i><span>Cancel</span>
+      </a>
+    </div>
+  </div>
+</div>
+{% endblock %}

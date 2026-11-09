@@ -1,0 +1,191 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Examination Management System — University Portal</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="{% static 'css/main.css' %}" rel="stylesheet">
+</head>
+<body>
+
+<!-- University Official Header / Navbar -->
+<nav style="background:#ffffff;border-bottom:2px solid #1e3a8a;box-shadow:0 1px 3px rgba(0,0,0,0.05);position:sticky;top:0;z-index:100;padding:12px 32px">
+  <div style="max-width:1200px;margin:0 auto;display:flex;align-items:center;justify-content:space-between">
+    <div style="display:flex;align-items:center;gap:12px">
+      <div style="width:42px;height:42px;border-radius:6px;background:#1e3a8a;color:#ffffff;display:flex;align-items:center;justify-content:center;font-size:22px;box-shadow:0 2px 4px rgba(30,58,138,0.2)">🏛️</div>
+      <div>
+        <div style="font-weight:800;font-size:1.05rem;color:#0f172a;letter-spacing:-0.01em;line-height:1.2">EXAMINATION MANAGEMENT PORTAL</div>
+        <div style="font-size:0.75rem;color:#64748b;font-weight:500">Office of the Controller of Examinations · Session 2026</div>
+      </div>
+    </div>
+    <div style="display:flex;align-items:center;gap:12px">
+      <a href="{% url 'student_search' %}" class="btn-ghost" style="padding:8px 18px">
+        <i class="bi bi-search text-primary"></i> Find My Seat
+      </a>
+      <a href="{% url 'admin_login' %}" class="btn-primary-glow" style="padding:8px 20px">
+        <i class="bi bi-shield-lock-fill"></i> Staff / Admin Login
+      </a>
+    </div>
+  </div>
+</nav>
+
+<!-- Hero Section (Institutional Navy) -->
+<section style="background:linear-gradient(135deg, #0f172a 0%, #1e3a8a 100%);color:#ffffff;padding:75px 20px 85px;position:relative">
+  <div style="max-width:960px;margin:0 auto;text-align:center">
+    <div class="hero-badge">
+      <i class="bi bi-award-fill text-warning"></i>
+      Full Stack Development Lab · Course Code: 24B15CS314
+    </div>
+
+    <h1 class="hero-title">
+      Centralized <span class="gradient-text">Examination Management</span> System
+    </h1>
+
+    <p class="hero-subtitle">
+      Automated seating plan allocation, real-time student hall ticket verification, 
+      room capacity management, and downloadable examination reports.
+    </p>
+
+    <div style="display:flex;gap:14px;justify-content:center;flex-wrap:wrap;margin-bottom:50px">
+      <a href="{% url 'student_search' %}" class="btn-primary-glow" style="padding:12px 28px;font-size:0.95rem;background:#f59e0b;border-color:#d97706;color:#0f172a !important;font-weight:700">
+        <i class="bi bi-search"></i> Student Portal: Find My Seat
+      </a>
+      <a href="{% url 'admin_login' %}" class="btn-ghost" style="padding:12px 28px;font-size:0.95rem;background:rgba(255,255,255,0.1);border-color:rgba(255,255,255,0.25);color:#ffffff !important">
+        <i class="bi bi-shield-check"></i> Controller & Admin Panel
+      </a>
+    </div>
+
+    <!-- Live Academic Stats -->
+    <div class="stats-grid">
+      <div class="stat-counter">
+        <div class="stat-number" style="color:#1e3a8a" data-count="{{ stats.total_students }}">{{ stats.total_students }}</div>
+        <div class="stat-label">Enrolled Students</div>
+      </div>
+      <div class="stat-counter">
+        <div class="stat-number" style="color:#0f766e" data-count="{{ stats.total_exams }}">{{ stats.total_exams }}</div>
+        <div class="stat-label">Examinations</div>
+      </div>
+      <div class="stat-counter">
+        <div class="stat-number" style="color:#334155" data-count="{{ stats.total_rooms }}">{{ stats.total_rooms }}</div>
+        <div class="stat-label">Exam Rooms</div>
+      </div>
+      <div class="stat-counter">
+        <div class="stat-number" style="color:#b45309" data-count="{{ stats.total_allocations }}">{{ stats.total_allocations }}</div>
+        <div class="stat-label">Confirmed Seats</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Features Grid (Clean Institutional White Cards) -->
+<section style="padding:70px 20px;background-color:#f8fafc">
+  <div style="max-width:1100px;margin:0 auto">
+    <div style="text-align:center;margin-bottom:50px">
+      <div style="font-size:0.75rem;font-weight:700;letter-spacing:0.08em;color:#1e3a8a;text-transform:uppercase">Core Functionalities</div>
+      <h2 style="font-size:1.9rem;font-weight:800;color:#0f172a;margin-top:4px">Key System Capabilities</h2>
+      <p style="color:#64748b;font-size:0.95rem;max-width:600px;margin:8px auto 0">Designed to meet all course requirements with precision, accuracy, and compliance.</p>
+    </div>
+
+    <div class="features-grid">
+      <div class="feature-card">
+        <div class="feature-icon"><i class="bi bi-people-fill"></i></div>
+        <h5 style="color:#0f172a;font-weight:700;font-size:1rem;margin-bottom:8px">Student Data Management</h5>
+        <p style="color:#64748b;font-size:0.85rem;line-height:1.5">Manage records manually or import hundreds of students via CSV/Excel spreadsheets with automatic validation.</p>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-icon" style="background:#f0fdf4;color:#15803d;border-color:#bbf7d0"><i class="bi bi-building"></i></div>
+        <h5 style="color:#0f172a;font-weight:700;font-size:1rem;margin-bottom:8px">Room & Capacity Control</h5>
+        <p style="color:#64748b;font-size:0.85rem;line-height:1.5">Configure halls, blocks, and floor levels with strict capacity safeguards to avoid hall overcrowding.</p>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-icon" style="background:#fffbeb;color:#b45309;border-color:#fde68a"><i class="bi bi-layout-three-columns"></i></div>
+        <h5 style="color:#0f172a;font-weight:700;font-size:1rem;margin-bottom:8px">Automated Seating Allocation</h5>
+        <p style="color:#64748b;font-size:0.85rem;line-height:1.5">Deterministic seating engine distributes candidates sequentially with room validation and conflict checks.</p>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-icon" style="background:#eff6ff;color:#1e40af;border-color:#bfdbfe"><i class="bi bi-search"></i></div>
+        <h5 style="color:#0f172a;font-weight:700;font-size:1rem;margin-bottom:8px">Instant AJAX Seat Lookup</h5>
+        <p style="color:#64748b;font-size:0.85rem;line-height:1.5">Candidates enter roll number and immediately obtain designated room number and seat with zero page reloads.</p>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-icon" style="background:#fef2f2;color:#b91c1c;border-color:#fecaca"><i class="bi bi-file-earmark-pdf-fill"></i></div>
+        <h5 style="color:#0f172a;font-weight:700;font-size:1rem;margin-bottom:8px">Admit Card & Hall Ticket</h5>
+        <p style="color:#64748b;font-size:0.85rem;line-height:1.5">Generate official printable Admit Cards with barcode, candidate photo box, rules, and controller signatures.</p>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-icon" style="background:#f8fafc;color:#334155;border-color:#cbd5e1"><i class="bi bi-file-earmark-spreadsheet-fill"></i></div>
+        <h5 style="color:#0f172a;font-weight:700;font-size:1rem;margin-bottom:8px">Official Reports & Exports</h5>
+        <p style="color:#64748b;font-size:0.85rem;line-height:1.5">Download room-wise attendance sheets and full examination summaries in PDF and CSV formats.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+{% if recent_exams %}
+<!-- Current Exam Schedule -->
+<section style="padding:40px 20px 60px;background:#ffffff;border-top:1px solid #e2e8f0">
+  <div style="max-width:900px;margin:0 auto">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
+      <h3 style="font-size:1.25rem;font-weight:700;color:#0f172a;margin:0">Active Examinations</h3>
+      <a href="{% url 'student_search' %}" style="font-size:0.85rem;color:#1e3a8a;text-decoration:none;font-weight:600">Check Seat Allocation →</a>
+    </div>
+    <div style="border:1px solid #e2e8f0;border-radius:8px;overflow:hidden">
+      <table class="ems-table" style="margin:0">
+        <thead>
+          <tr>
+            <th>Course / Subject</th>
+            <th>Subject Code</th>
+            <th>Exam Date</th>
+            <th>Timing</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for exam in recent_exams %}
+          <tr>
+            <td style="font-weight:600;color:#0f172a">{{ exam.subject }}</td>
+            <td><span class="badge-pill badge-info">{{ exam.subject_code|default:"—" }}</span></td>
+            <td>{{ exam.exam_date|date:"d M Y" }}</td>
+            <td style="font-size:0.82rem;color:#64748b">{{ exam.start_time|time:"g:i A" }} – {{ exam.end_time|time:"g:i A" }}</td>
+            <td>
+              <span class="badge-pill badge-{% if exam.status == 'scheduled' %}primary{% elif exam.status == 'completed' %}success{% else %}warning{% endif %}">
+                {{ exam.get_status_display }}
+              </span>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+{% endif %}
+
+<!-- Institutional Footer -->
+<footer style="background:#0f172a;color:#94a3b8;padding:36px 20px;border-top:1px solid #1e293b;text-align:center">
+  <div style="max-width:900px;margin:0 auto;font-size:0.85rem">
+    <div style="color:#ffffff;font-weight:700;font-size:0.95rem;margin-bottom:6px">EXAMINATION MANAGEMENT SYSTEM</div>
+    <div>Department of Computer Science & Engineering · Full Stack Development Lab (24B15CS314)</div>
+    <div style="margin-top:16px;display:flex;justify-content:center;gap:20px;font-size:0.82rem">
+      <a href="{% url 'student_search' %}" style="color:#cbd5e1;text-decoration:none">Student Hall Ticket Search</a>
+      <span>·</span>
+      <a href="{% url 'admin_login' %}" style="color:#cbd5e1;text-decoration:none">Staff Administration Login</a>
+      <span>·</span>
+      <a href="/admin/" style="color:#cbd5e1;text-decoration:none">Django Superuser Portal</a>
+    </div>
+  </div>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script src="{% static 'js/main.js' %}"></script>
+</body>
+</html>

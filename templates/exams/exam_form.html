@@ -1,0 +1,62 @@
+{% extends 'exams/admin_base.html' %}
+
+{% block title %}{{ title }} — EMS{% endblock %}
+{% block page_title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div style="max-width:700px">
+  <div class="glass-card" style="padding:32px">
+    <form method="post" novalidate>
+      {% csrf_token %}
+
+      <div style="display:grid;grid-template-columns:2fr 1fr;gap:20px">
+        <div>
+          <label class="form-label">Subject Name *</label>
+          {{ form.subject }}
+          {% if form.subject.errors %}<div class="invalid-feedback d-block">{{ form.subject.errors.0 }}</div>{% endif %}
+        </div>
+        <div>
+          <label class="form-label">Subject Code</label>
+          {{ form.subject_code }}
+          {% if form.subject_code.errors %}<div class="invalid-feedback d-block">{{ form.subject_code.errors.0 }}</div>{% endif %}
+        </div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:20px;margin-top:20px">
+        <div>
+          <label class="form-label">Exam Date *</label>
+          {{ form.exam_date }}
+          {% if form.exam_date.errors %}<div class="invalid-feedback d-block">{{ form.exam_date.errors.0 }}</div>{% endif %}
+        </div>
+        <div>
+          <label class="form-label">Start Time *</label>
+          {{ form.start_time }}
+          {% if form.start_time.errors %}<div class="invalid-feedback d-block">{{ form.start_time.errors.0 }}</div>{% endif %}
+        </div>
+        <div>
+          <label class="form-label">End Time *</label>
+          {{ form.end_time }}
+          {% if form.end_time.errors %}<div class="invalid-feedback d-block">{{ form.end_time.errors.0 }}</div>{% endif %}
+        </div>
+      </div>
+
+      <div style="margin-top:20px">
+        <label class="form-label">Status</label>
+        {{ form.status }}
+        {% if form.status.errors %}<div class="invalid-feedback d-block">{{ form.status.errors.0 }}</div>{% endif %}
+      </div>
+
+      <div style="margin-top:20px">
+        <label class="form-label">Description / Notes</label>
+        {{ form.description }}
+        {% if form.description.errors %}<div class="invalid-feedback d-block">{{ form.description.errors.0 }}</div>{% endif %}
+      </div>
+
+      <div style="display:flex;gap:12px;margin-top:28px">
+        <button type="submit" class="btn-primary-glow"><i class="bi bi-check-lg"></i><span>{{ action }} Exam</span></button>
+        <a href="{% url 'exam_list' %}" class="btn-ghost"><i class="bi bi-x"></i><span>Cancel</span></a>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

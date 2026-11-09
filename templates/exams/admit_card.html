@@ -1,0 +1,369 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admit Card — {{ allocation.student.roll_number }} — {{ allocation.exam.subject }}</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Libre+Barcode+39+Text&display=swap" rel="stylesheet">
+  
+  <style>
+    :root {
+      --primary: #4338ca;
+      --dark: #0f172a;
+      --border: #cbd5e1;
+    }
+    body {
+      background: #f1f5f9;
+      font-family: 'Inter', system-ui, sans-serif;
+      color: #1e293b;
+      margin: 0;
+      padding: 30px 15px;
+    }
+    .admit-container {
+      max-width: 820px;
+      margin: 0 auto;
+    }
+    .actions-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+      gap: 12px;
+    }
+    .admit-sheet {
+      background: #ffffff;
+      border: 2px solid #0f172a;
+      border-radius: 8px;
+      padding: 35px 40px;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.08);
+      position: relative;
+    }
+    .watermark {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%) rotate(-30deg);
+      font-size: 5rem;
+      font-weight: 800;
+      color: rgba(15, 23, 42, 0.04);
+      pointer-events: none;
+      user-select: none;
+      white-space: nowrap;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+    }
+    .inst-header {
+      border-bottom: 2px solid #0f172a;
+      padding-bottom: 16px;
+      margin-bottom: 20px;
+      text-align: center;
+      position: relative;
+    }
+    .inst-title {
+      font-size: 1.45rem;
+      font-weight: 800;
+      color: #0f172a;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      margin: 0;
+    }
+    .inst-sub {
+      font-size: 0.85rem;
+      color: #64748b;
+      font-weight: 500;
+      margin-top: 4px;
+    }
+    .doc-badge {
+      display: inline-block;
+      background: #0f172a;
+      color: #ffffff;
+      padding: 4px 18px;
+      font-size: 0.85rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      border-radius: 4px;
+      margin-top: 10px;
+    }
+    .details-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 20px;
+    }
+    .details-table td {
+      padding: 7px 10px;
+      font-size: 0.88rem;
+      border: 1px solid var(--border);
+      vertical-align: middle;
+    }
+    .details-table .lbl {
+      background: #f8fafc;
+      font-weight: 600;
+      color: #475569;
+      width: 22%;
+    }
+    .details-table .val {
+      color: #0f172a;
+      font-weight: 500;
+    }
+    .photo-box {
+      width: 130px;
+      height: 155px;
+      border: 2px dashed #94a3b8;
+      border-radius: 6px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      color: #94a3b8;
+      background: #f8fafc;
+      font-size: 0.75rem;
+      text-align: center;
+      padding: 6px;
+    }
+    .seat-badge-box {
+      background: linear-gradient(135deg, #eef2ff, #e0e7ff);
+      border: 2px solid #6366f1;
+      border-radius: 8px;
+      padding: 12px 18px;
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    .seat-label {
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      font-weight: 700;
+      color: #4338ca;
+      letter-spacing: 0.06em;
+    }
+    .seat-big {
+      font-size: 2rem;
+      font-weight: 800;
+      color: #1e1b4b;
+      line-height: 1.1;
+    }
+    .barcode-display {
+      font-family: 'Libre Barcode 39 Text', cursive;
+      font-size: 2.2rem;
+      line-height: 1;
+      letter-spacing: 4px;
+      color: #0f172a;
+    }
+    .rules-list {
+      background: #fafafa;
+      border: 1px solid #e2e8f0;
+      border-radius: 6px;
+      padding: 12px 20px;
+      font-size: 0.76rem;
+      color: #475569;
+      line-height: 1.5;
+      margin-bottom: 24px;
+    }
+    .signatures-row {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 35px;
+      padding-top: 10px;
+    }
+    .sign-block {
+      text-align: center;
+      width: 200px;
+    }
+    .sign-line {
+      border-top: 1px solid #0f172a;
+      margin-bottom: 6px;
+    }
+    .sign-text {
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: #0f172a;
+    }
+
+    /* Print Styles */
+    @media print {
+      * {
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+        color-adjust: exact !important;
+      }
+      body {
+        background: #ffffff !important;
+        padding: 0 !important;
+        margin: 0 !important;
+      }
+      .actions-bar {
+        display: none !important;
+      }
+      .admit-container {
+        max-width: 100% !important;
+        margin: 0 !important;
+        padding: 0 !important;
+      }
+      .admit-sheet {
+        box-shadow: none !important;
+        border: 2px solid #0f172a !important;
+        padding: 20px 25px !important;
+        page-break-inside: avoid !important;
+      }
+      .watermark {
+        display: block !important;
+      }
+    }
+  </style>
+</head>
+<body>
+
+<div class="admit-container">
+  <!-- Actions Bar (Hidden on print) -->
+  <div class="actions-bar">
+    <a href="{% url 'student_search' %}" class="btn btn-outline-secondary btn-sm">
+      <i class="bi bi-arrow-left me-1"></i> Back to Search
+    </a>
+    <div class="d-flex gap-2">
+      <button onclick="window.print()" class="btn btn-primary btn-sm">
+        <i class="bi bi-printer-fill me-1"></i> Print / Save as PDF
+      </button>
+      <a href="{% url 'download_admit_card' allocation.id %}" class="btn btn-success btn-sm">
+        <i class="bi bi-file-earmark-pdf-fill me-1"></i> Direct ReportLab PDF
+      </a>
+    </div>
+  </div>
+
+  <!-- Admit Card Paper Sheet -->
+  <div class="admit-sheet">
+    <div class="watermark">EXAMINATION 2026</div>
+
+    <!-- Institute Header -->
+    <div class="inst-header">
+      <div style="font-size: 1.8rem; margin-bottom: 2px;">🏛️</div>
+      <h1 class="inst-title">EXAMINATION MANAGEMENT SYSTEM</h1>
+      <div class="inst-sub">Office of the Controller of Examinations · Academic Session 2026</div>
+      <div class="doc-badge">Official Hall Ticket / Admit Card</div>
+    </div>
+
+    <!-- Top Info Row: Student + Photo -->
+    <div class="row align-items-center mb-3">
+      <div class="col-8">
+        <div class="barcode-display">*{{ allocation.student.roll_number }}*</div>
+        <div style="font-size: 0.75rem; color: #64748b;">BARCODE VERIFICATION CODE: {{ allocation.student.roll_number }}-EXAM{{ allocation.exam.id }}</div>
+      </div>
+      <div class="col-4 d-flex justify-content-end">
+        <div class="photo-box">
+          <i class="bi bi-person-fill" style="font-size: 2.5rem; color: #cbd5e1;"></i>
+          <span>Affix Passport<br>Photograph Here</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Student Details Table -->
+    <table class="details-table">
+      <tr>
+        <td class="lbl">Candidate Name</td>
+        <td class="val" colspan="3"><strong style="font-size: 1rem; color: #0f172a;">{{ allocation.student.name }}</strong></td>
+      </tr>
+      <tr>
+        <td class="lbl">Roll Number</td>
+        <td class="val" style="font-family: monospace; font-size: 0.95rem; font-weight: 700; color: #4338ca;">{{ allocation.student.roll_number }}</td>
+        <td class="lbl">Course / Programme</td>
+        <td class="val">{{ allocation.student.course }}</td>
+      </tr>
+      <tr>
+        <td class="lbl">Semester</td>
+        <td class="val">Semester {{ allocation.student.semester }}</td>
+        <td class="lbl">Email / Contact</td>
+        <td class="val">{{ allocation.student.email }}</td>
+      </tr>
+    </table>
+
+    <!-- Examination & Allocation Details Table -->
+    <table class="details-table">
+      <tr style="background: #f1f5f9;">
+        <td colspan="4" style="font-weight: 700; font-size: 0.85rem; color: #0f172a; text-transform: uppercase;">
+          <i class="bi bi-journal-check me-1"></i> Examination Schedule & Venue Details
+        </td>
+      </tr>
+      <tr>
+        <td class="lbl">Exam Subject</td>
+        <td class="val" colspan="3"><strong style="color: #0f172a;">{{ allocation.exam.subject }}</strong></td>
+      </tr>
+      <tr>
+        <td class="lbl">Subject Code</td>
+        <td class="val">{{ allocation.exam.subject_code|default:"N/A" }}</td>
+        <td class="lbl">Exam Date</td>
+        <td class="val"><strong>{{ allocation.exam.exam_date|date:"l, d F Y" }}</strong></td>
+      </tr>
+      <tr>
+        <td class="lbl">Exam Timing</td>
+        <td class="val"><strong>{{ allocation.exam.start_time|time:"g:i A" }} – {{ allocation.exam.end_time|time:"g:i A" }}</strong></td>
+        <td class="lbl">Reporting Time</td>
+        <td class="val" style="color: #b45309; font-weight: 600;">30 mins before start</td>
+      </tr>
+      <tr>
+        <td class="lbl">Building / Block</td>
+        <td class="val">{{ allocation.room.building }} (Floor {{ allocation.room.floor }})</td>
+        <td class="lbl">Allocated Room</td>
+        <td class="val"><strong style="font-size: 1rem; color: #4338ca;">Room {{ allocation.room.room_number }}</strong></td>
+      </tr>
+    </table>
+
+    <!-- Highlighted Seat Allocation Box -->
+    <div class="seat-badge-box">
+      <div class="row align-items-center">
+        <div class="col-md-4">
+          <div class="seat-label">EXAM ROOM</div>
+          <div class="seat-big" style="color: #4338ca;">{{ allocation.room.room_number }}</div>
+          <small class="text-muted">{{ allocation.room.building }}</small>
+        </div>
+        <div class="col-md-4 border-start border-end">
+          <div class="seat-label">ASSIGNED SEAT NUMBER</div>
+          <div class="seat-big" style="color: #059669;">SEAT #{{ allocation.seat_number }}</div>
+          <small class="text-success font-weight-bold">✓ Confirmed Allocation</small>
+        </div>
+        <div class="col-md-4">
+          <div class="seat-label">STATUS</div>
+          <div class="seat-big" style="font-size: 1.4rem; color: #0f172a;">ELIGIBLE</div>
+          <small class="text-muted">Admit card verified</small>
+        </div>
+      </div>
+    </div>
+
+    <!-- Candidate Instructions -->
+    <div class="rules-list">
+      <div style="font-weight: 700; margin-bottom: 6px; color: #0f172a; text-transform: uppercase;">
+        <i class="bi bi-exclamation-triangle-fill text-warning me-1"></i> Important Instructions for Candidates:
+      </div>
+      <ol class="ps-3 mb-0">
+        <li>Candidates must carry this printed Admit Card along with their valid College Photo ID to the exam hall.</li>
+        <li>Reach the examination venue at least 30 minutes prior to the scheduled start time.</li>
+        <li>Electronic devices, smartphones, smartwatches, and programmable calculators are strictly prohibited.</li>
+        <li>Candidates are required to occupy strictly the designated Room & Seat Number mentioned above.</li>
+        <li>This document is system-generated and valid for the specified examination only.</li>
+      </ol>
+    </div>
+
+    <!-- Signatures -->
+    <div class="signatures-row">
+      <div class="sign-block">
+        <div style="height: 40px;"></div>
+        <div class="sign-line"></div>
+        <div class="sign-text">Candidate's Signature</div>
+      </div>
+      <div class="sign-block">
+        <div style="height: 40px;"></div>
+        <div class="sign-line"></div>
+        <div class="sign-text">Invigilator's Signature</div>
+      </div>
+      <div class="sign-block">
+        <div style="height: 30px; font-weight: 800; color: #4338ca; font-size: 0.9rem;">[OFFICIAL SEAL]</div>
+        <div class="sign-line"></div>
+        <div class="sign-text">Controller of Examinations</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

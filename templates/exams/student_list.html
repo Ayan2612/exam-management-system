@@ -1,0 +1,134 @@
+{% extends 'exams/admin_base.html' %}
+
+{% block title %}Students — EMS{% endblock %}
+{% block page_title %}Students{% endblock %}
+{% block page_subtitle %}Manage student records{% endblock %}
+
+{% block content %}
+
+<!-- Action Bar -->
+<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:24px">
+  <div style="display:flex;gap:10px">
+    <a href="{% url 'student_create' %}" class="btn-primary-glow" style="padding:10px 20px;font-size:0.875rem">
+      <i class="bi bi-person-plus-fill"></i><span>Add Student</span>
+    </a>
+    <a href="{% url 'student_import' %}" class="btn-ghost">
+      <i class="bi bi-cloud-upload"></i><span>Import CSV/Excel</span>
+    </a>
+    <a href="{% url 'download_csv_template' %}" class="btn-ghost">
+      <i class="bi bi-download"></i><span>Template</span>
+    </a>
+  </div>
+  <span style="color:var(--text-muted);font-size:0.85rem">{{ total_count }} student{{ total_count|pluralize }}</span>
+</div>
+
+<!-- Filter Form -->
+<div class="glass-card" style="padding:16px 20px;margin-bottom:20px">
+  <form method="get" style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end">
+    <div style="flex:1;min-width:200px">
+      <label class="form-label" style="font-size:0.8rem">Search</label>
+      <input type="text" name="q" value="{{ q }}" class="form-control form-control-sm" placeholder="Roll no., name or email...">
+    </div>
+    <div style="min-width:160px">
+      <label class="form-label" style="font-size:0.8rem">Course</label>
+      <select name="course" class="form-select form-select-sm">
+        <option value="">All Courses</option>
+        {% for c in courses %}<option value="{{ c }}" {% if c == selected_course %}selected{% endif %}>{{ c }}</option>{% endfor %}
+      </select>
+    </div>
+    <div style="min-width:130px">
+      <label class="form-label" style="font-size:0.8rem">Semester</label>
+      <select name="semester" class="form-select form-select-sm">
+        <option value="">All Semesters</option>
+        {% for i in "12345678" %}<option value="{{ i }}" {% if i == selected_semester %}selected{% endif %}>Sem {{ i }}</option>{% endfor %}
+      </select>
+    </div>
+    <div style="display:flex;gap:8px">
+      <button type="submit" class="btn-primary-glow" style="padding:8px 18px;font-size:0.85rem"><i class="bi bi-search"></i><span>Filter</span></button>
+      <a href="{% url 'student_list' %}" class="btn-ghost" style="padding:8px 14px;font-size:0.85rem"><i class="bi bi-x"></i></a>
+    </div>
+  </form>
+</div>
+
+<!-- Table -->
+<div class="glass-card" style="padding:0;overflow:hidden">
+  <div style="padding:16px 20px;border-bottom:1px solid var(--border-glass);display:flex;align-items:center;justify-content:space-between">
+    <h6 style="color:var(--text-primary);font-weight:600;margin:0">Student Records</h6>
+    <input type="text" id="inlineTableSearch" placeholder="Quick filter..." class="form-control form-control-sm" style="max-width:200px">
+  </div>
+
+  <div style="overflow-x:auto">
+    <table class="ems-table">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Roll Number</th>
+          <th>Name</th>
+          <th>Email</th>
+          <th>Course</th>
+          <th>Sem</th>
+          <th>Added</th>
+          <th style="text-align:center">Actions</th>
+        </tr>
+      </thead>
+      <tbody id="mainTableBody">
+        {% for student in page_obj %}
+        <tr>
+          <td style="color:var(--text-muted);font-size:0.8rem">{{ forloop.counter }}</td>
+          <td style="font-family:monospace;color:var(--primary-light);font-weight:600">{{ student.roll_number }}</td>
+          <td>{{ student.name }}</td>
+          <td style="color:var(--text-muted);font-size:0.85rem">{{ student.email }}</td>
+          <td><span class="badge-pill badge-info">{{ student.course }}</span></td>
+          <td><span class="badge-pill badge-primary">Sem {{ student.semester }}</span></td>
+          <td style="color:var(--text-muted);font-size:0.8rem">{{ student.created_at|date:"d M Y" }}</td>
+          <td style="text-align:center">
+            <div style="display:flex;gap:6px;justify-content:center">
+              <a href="{% url 'student_edit' student.pk %}" class="btn-icon success" title="Edit">
+                <i class="bi bi-pencil"></i>
+              </a>
+              <a href="{% url 'student_delete' student.pk %}" class="btn-icon danger" title="Delete">
+                <i class="bi bi-trash"></i>
+              </a>
+            </div>
+          </td>
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="8" style="text-align:center;padding:48px;color:var(--text-muted)">
+            <div style="font-size:2rem;margin-bottom:12px">👥</div>
+            No students found.
+            {% if q or selected_course or selected_semester %}
+              <a href="{% url 'student_list' %}" style="color:var(--primary-light)">Clear filters</a>
+            {% else %}
+              <a href="{% url 'student_create' %}" style="color:var(--primary-light)">Add your first student</a>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Pagination -->
+  {% if page_obj.has_other_pages %}
+  <div style="padding:16px 20px;border-top:1px solid var(--border-glass);display:flex;justify-content:center">
+    <nav>
+      <ul class="pagination ems-pagination mb-0">
+        {% if page_obj.has_previous %}
+        <li class="page-item"><a class="page-link" href="?page={{ page_obj.previous_page_number }}&q={{ q }}&course={{ selected_course }}&semester={{ selected_semester }}"><i class="bi bi-chevron-left"></i></a></li>
+        {% endif %}
+        {% for num in page_obj.paginator.page_range %}
+        <li class="page-item {% if num == page_obj.number %}active{% endif %}">
+          <a class="page-link" href="?page={{ num }}&q={{ q }}&course={{ selected_course }}&semester={{ selected_semester }}">{{ num }}</a>
+        </li>
+        {% endfor %}
+        {% if page_obj.has_next %}
+        <li class="page-item"><a class="page-link" href="?page={{ page_obj.next_page_number }}&q={{ q }}&course={{ selected_course }}&semester={{ selected_semester }}"><i class="bi bi-chevron-right"></i></a></li>
+        {% endif %}
+      </ul>
+    </nav>
+  </div>
+  {% endif %}
+</div>
+
+{% endblock %}

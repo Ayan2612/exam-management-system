@@ -1,0 +1,128 @@
+{% extends 'exams/admin_base.html' %}
+{% load static %}
+
+{% block title %}Seating Allocation — EMS{% endblock %}
+{% block page_title %}Seating Allocation{% endblock %}
+{% block page_subtitle %}Automatically allocate students to exam rooms{% endblock %}
+
+{% block content %}
+
+<!-- Hidden rooms data for JS -->
+<script id="roomsData" type="application/json">{{ rooms_data }}</script>
+
+<form method="post" novalidate id="allocationForm">
+  {% csrf_token %}
+
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px">
+
+    <!-- Left: Exam Selection + Rooms -->
+    <div>
+      <!-- Exam -->
+      <div class="glass-card" style="padding:24px;margin-bottom:20px">
+        <h6 style="color:var(--primary-light);font-weight:700;margin-bottom:16px;text-transform:uppercase;font-size:0.75rem;letter-spacing:0.08em">① Select Exam</h6>
+        <label class="form-label">Examination *</label>
+        {{ form.exam }}
+        {% if form.exam.errors %}<div class="invalid-feedback d-block">{{ form.exam.errors.0 }}</div>{% endif %}
+      </div>
+
+      <!-- Rooms -->
+      <div class="glass-card" style="padding:24px">
+        <h6 style="color:var(--primary-light);font-weight:700;margin-bottom:16px;text-transform:uppercase;font-size:0.75rem;letter-spacing:0.08em">② Select Rooms</h6>
+        {% for room_choice in form.rooms %}
+        <label class="room-checkbox-card">
+          <input type="checkbox" name="rooms" value="{{ room_choice.data.value }}"
+            class="room-checkbox" data-capacity="{{ room_choice.data.label|cut:" (Cap:"|cut:")"|default:30 }}"
+            {% if room_choice.data.selected %}checked{% endif %}
+            style="accent-color:var(--primary);width:18px;height:18px;cursor:pointer;margin-top:2px">
+          <div>
+            <div style="color:var(--text-primary);font-weight:600;font-size:0.9rem">{{ room_choice.choice_label }}</div>
+          </div>
+        </label>
+        {% empty %}
+        <div class="alert-ems alert-warning">
+          <i class="bi bi-exclamation-triangle"></i>
+          <span>No active rooms available. <a href="{% url 'room_create' %}" style="color:var(--accent)">Add rooms first.</a></span>
+        </div>
+        {% endfor %}
+        {% if form.rooms.errors %}<div class="invalid-feedback d-block">{{ form.rooms.errors.0 }}</div>{% endif %}
+      </div>
+    </div>
+
+    <!-- Right: Students -->
+    <div>
+      <div class="glass-card" style="padding:24px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+          <h6 style="color:var(--primary-light);font-weight:700;text-transform:uppercase;font-size:0.75rem;letter-spacing:0.08em;margin:0">③ Select Students</h6>
+          <div style="display:flex;gap:8px">
+            <button type="button" id="selectAllStudents" class="btn-ghost" style="padding:5px 12px;font-size:0.75rem">Select All</button>
+            <button type="button" id="deselectAllStudents" class="btn-ghost" style="padding:5px 12px;font-size:0.75rem">None</button>
+          </div>
+        </div>
+
+        <div class="student-select-container" style="max-height:400px;overflow-y:auto">
+          {% for student_choice in form.students %}
+          <label style="display:flex;align-items:center;gap:10px;padding:10px;border-radius:8px;cursor:pointer;transition:background 0.15s;margin-bottom:2px" onmouseover="this.style.background='rgba(99,102,241,0.1)'" onmouseout="this.style.background='transparent'">
+            <input type="checkbox" name="students" value="{{ student_choice.data.value }}"
+              class="student-checkbox"
+              {% if student_choice.data.selected %}checked{% endif %}
+              style="accent-color:var(--primary);width:16px;height:16px;cursor:pointer;flex-shrink:0">
+            <span style="color:var(--text-secondary);font-size:0.875rem">{{ student_choice.choice_label }}</span>
+          </label>
+          {% empty %}
+          <div class="alert-ems alert-warning">
+            <i class="bi bi-exclamation-triangle"></i>
+            <span>No students in database. <a href="{% url 'student_create' %}" style="color:var(--accent)">Add students first.</a></span>
+          </div>
+          {% endfor %}
+        </div>
+        {% if form.students.errors %}<div class="invalid-feedback d-block mt-2">{{ form.students.errors.0 }}</div>{% endif %}
+      </div>
+    </div>
+  </div>
+
+  {% if form.non_field_errors %}
+  <div class="alert-ems alert-danger mt-3">
+    {% for error in form.non_field_errors %}<div>{{ error }}</div>{% endfor %}
+  </div>
+  {% endif %}
+
+  <!-- Capacity Calculator (Sticky) -->
+  <div class="glass-card" style="padding:20px;margin-top:20px;border:1px solid #cbd5e1;background:#ffffff">
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:20px;align-items:center">
+      <div style="text-align:center">
+        <div style="font-size:0.75rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--text-muted);margin-bottom:4px">Students Selected</div>
+        <div style="font-size:2rem;font-weight:800;color:var(--accent)" id="studentDisplay">0</div>
+      </div>
+      <div style="text-align:center">
+        <div style="font-size:0.75rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--text-muted);margin-bottom:4px">Room Capacity</div>
+        <div style="font-size:2rem;font-weight:800;color:var(--accent-green)" id="capacityDisplay">0</div>
+        <div class="capacity-bar"><div class="capacity-fill" id="capacityBar" style="width:0%"></div></div>
+      </div>
+      <div style="text-align:center">
+        <button type="submit" class="btn-primary-glow" style="font-size:1rem;padding:14px 28px;width:100%;justify-content:center" id="allocateBtn">
+          <i class="bi bi-layout-three-columns"></i>
+          <span>Generate Seating Plan</span>
+        </button>
+      </div>
+    </div>
+    <div id="capacityAlert"></div>
+  </div>
+
+</form>
+
+{% block extra_js %}
+<script>
+  // Update room capacity data from actual room capacity values
+  document.querySelectorAll('.room-checkbox').forEach(cb => {
+    // Parse capacity from the label text
+    const label = cb.closest('label');
+    if (label) {
+      const text = label.querySelector('div div')?.textContent || '';
+      const match = text.match(/Cap:\s*(\d+)/i);
+      if (match) cb.dataset.capacity = match[1];
+    }
+  });
+</script>
+{% endblock %}
+
+{% endblock %}

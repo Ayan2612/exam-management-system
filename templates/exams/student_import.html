@@ -1,0 +1,69 @@
+{% extends 'exams/admin_base.html' %}
+
+{% block title %}Import Students — EMS{% endblock %}
+{% block page_title %}Import Students{% endblock %}
+{% block page_subtitle %}Upload CSV or Excel file to bulk-add students{% endblock %}
+
+{% block content %}
+
+<div style="max-width:700px">
+  <div class="glass-card" style="padding:32px;margin-bottom:20px">
+    <h5 style="color:var(--text-primary);font-weight:700;margin-bottom:20px">📂 Upload File</h5>
+
+    <form method="post" enctype="multipart/form-data" novalidate>
+      {% csrf_token %}
+
+      <div class="mb-4">
+        <label class="form-label">Select CSV or Excel File</label>
+        {{ form.file }}
+        <div style="font-size:0.8rem;color:var(--text-muted);margin-top:8px">
+          <i class="bi bi-info-circle me-1"></i>
+          Supported formats: .csv, .xlsx, .xls
+        </div>
+        {% if form.file.errors %}<div class="invalid-feedback d-block">{{ form.file.errors.0 }}</div>{% endif %}
+      </div>
+
+      <div style="display:flex;gap:12px">
+        <button type="submit" class="btn-primary-glow">
+          <i class="bi bi-cloud-upload-fill"></i><span>Upload & Import</span>
+        </button>
+        <a href="{% url 'download_csv_template' %}" class="btn-ghost">
+          <i class="bi bi-download"></i><span>Download Template</span>
+        </a>
+        <a href="{% url 'student_list' %}" class="btn-ghost">
+          <i class="bi bi-x"></i><span>Cancel</span>
+        </a>
+      </div>
+    </form>
+  </div>
+
+  <!-- File Format Guide -->
+  <div class="glass-card" style="padding:24px">
+    <h6 style="color:var(--text-primary);font-weight:700;margin-bottom:16px">📋 Required File Format</h6>
+    <div style="overflow-x:auto;border-radius:10px;overflow:hidden">
+      <table class="ems-table">
+        <thead>
+          <tr>
+            <th>Column</th>
+            <th>Required</th>
+            <th>Example</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td><code style="color:var(--primary-light)">roll_number</code></td><td><span class="badge-pill badge-danger">Required</span></td><td style="color:var(--text-muted)">21B15CS001</td></tr>
+          <tr><td><code style="color:var(--primary-light)">name</code></td><td><span class="badge-pill badge-danger">Required</span></td><td style="color:var(--text-muted)">Rahul Sharma</td></tr>
+          <tr><td><code style="color:var(--primary-light)">email</code></td><td><span class="badge-pill badge-danger">Required</span></td><td style="color:var(--text-muted)">rahul@college.edu</td></tr>
+          <tr><td><code style="color:var(--primary-light)">course</code></td><td><span class="badge-pill badge-warning">Optional</span></td><td style="color:var(--text-muted)">B.Tech CSE</td></tr>
+          <tr><td><code style="color:var(--primary-light)">semester</code></td><td><span class="badge-pill badge-warning">Optional</span></td><td style="color:var(--text-muted)">5</td></tr>
+          <tr><td><code style="color:var(--primary-light)">phone</code></td><td><span class="badge-pill badge-warning">Optional</span></td><td style="color:var(--text-muted)">9876543210</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="alert-ems alert-info mt-3">
+      <i class="bi bi-lightbulb"></i>
+      <span>Existing students (matched by roll_number) will be updated. New ones will be created.</span>
+    </div>
+  </div>
+</div>
+
+{% endblock %}

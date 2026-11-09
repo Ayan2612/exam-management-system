@@ -1,0 +1,66 @@
+{% extends 'exams/admin_base.html' %}
+
+{% block title %}{{ title }} — EMS{% endblock %}
+{% block page_title %}{{ title }}{% endblock %}
+{% block page_subtitle %}{% if action == 'Edit' %}Editing: {{ student }}{% else %}Fill in the student details below{% endif %}{% endblock %}
+
+{% block content %}
+
+<div style="max-width:700px">
+  <div class="glass-card" style="padding:32px">
+    <form method="post" novalidate class="needs-validation">
+      {% csrf_token %}
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
+        <div>
+          <label class="form-label">Roll Number *</label>
+          {{ form.roll_number }}
+          {% if form.roll_number.errors %}<div class="invalid-feedback d-block">{{ form.roll_number.errors.0 }}</div>{% endif %}
+        </div>
+        <div>
+          <label class="form-label">Full Name *</label>
+          {{ form.name }}
+          {% if form.name.errors %}<div class="invalid-feedback d-block">{{ form.name.errors.0 }}</div>{% endif %}
+        </div>
+        <div>
+          <label class="form-label">Email Address *</label>
+          {{ form.email }}
+          {% if form.email.errors %}<div class="invalid-feedback d-block">{{ form.email.errors.0 }}</div>{% endif %}
+        </div>
+        <div>
+          <label class="form-label">Phone Number</label>
+          {{ form.phone }}
+          {% if form.phone.errors %}<div class="invalid-feedback d-block">{{ form.phone.errors.0 }}</div>{% endif %}
+        </div>
+        <div>
+          <label class="form-label">Course *</label>
+          {{ form.course }}
+          {% if form.course.errors %}<div class="invalid-feedback d-block">{{ form.course.errors.0 }}</div>{% endif %}
+        </div>
+        <div>
+          <label class="form-label">Semester *</label>
+          {{ form.semester }}
+          {% if form.semester.errors %}<div class="invalid-feedback d-block">{{ form.semester.errors.0 }}</div>{% endif %}
+        </div>
+      </div>
+
+      {% if form.non_field_errors %}
+      <div class="alert-ems alert-danger mt-3">
+        {% for error in form.non_field_errors %}<div>{{ error }}</div>{% endfor %}
+      </div>
+      {% endif %}
+
+      <div style="display:flex;gap:12px;margin-top:28px">
+        <button type="submit" class="btn-primary-glow">
+          <i class="bi bi-check-lg"></i>
+          <span>{{ action }} Student</span>
+        </button>
+        <a href="{% url 'student_list' %}" class="btn-ghost">
+          <i class="bi bi-x"></i><span>Cancel</span>
+        </a>
+      </div>
+    </form>
+  </div>
+</div>
+
+{% endblock %}

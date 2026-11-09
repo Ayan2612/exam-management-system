@@ -1,0 +1,74 @@
+{% extends 'exams/admin_base.html' %}
+
+{% block title %}Exams — EMS{% endblock %}
+{% block page_title %}Exams{% endblock %}
+{% block page_subtitle %}Create and manage examinations{% endblock %}
+
+{% block content %}
+
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:24px">
+  <a href="{% url 'exam_create' %}" class="btn-primary-glow" style="padding:10px 20px;font-size:0.875rem">
+    <i class="bi bi-calendar-plus"></i><span>Create Exam</span>
+  </a>
+  <span style="color:var(--text-muted);font-size:0.85rem">{{ exams.count }} exam{{ exams.count|pluralize }}</span>
+</div>
+
+<div class="glass-card" style="padding:0;overflow:hidden">
+  <div style="overflow-x:auto">
+    <table class="ems-table">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Subject</th>
+          <th>Code</th>
+          <th>Date</th>
+          <th>Time</th>
+          <th>Status</th>
+          <th>Allocated</th>
+          <th style="text-align:center">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for exam in exams %}
+        <tr>
+          <td style="color:var(--text-muted);font-size:0.8rem">{{ forloop.counter }}</td>
+          <td>
+            <a href="{% url 'seating_detail' exam.id %}" style="color:var(--text-primary);text-decoration:none;font-weight:600">{{ exam.subject }}</a>
+          </td>
+          <td><code style="color:var(--primary-light);font-size:0.8rem">{{ exam.subject_code|default:"—" }}</code></td>
+          <td>{{ exam.exam_date|date:"d M Y" }}</td>
+          <td style="font-size:0.8rem;color:var(--text-muted)">{{ exam.start_time|time:"g:i A" }} – {{ exam.end_time|time:"g:i A" }}</td>
+          <td><span class="badge-pill badge-{% if exam.status == 'scheduled' %}primary{% elif exam.status == 'completed' %}success{% elif exam.status == 'ongoing' %}warning{% else %}danger{% endif %}">{{ exam.get_status_display }}</span></td>
+          <td>
+            {% if exam.allocated_count > 0 %}
+              <a href="{% url 'seating_detail' exam.id %}" style="text-decoration:none">
+                <span class="badge-pill badge-success">{{ exam.allocated_count }} seats</span>
+              </a>
+            {% else %}
+              <span class="badge-pill badge-warning">Not allocated</span>
+            {% endif %}
+          </td>
+          <td style="text-align:center">
+            <div style="display:flex;gap:5px;justify-content:center;flex-wrap:wrap">
+              <a href="{% url 'seating_detail' exam.id %}" class="btn-icon" title="View Seating"><i class="bi bi-layout-three-columns"></i></a>
+              <a href="{% url 'exam_edit' exam.pk %}" class="btn-icon success" title="Edit"><i class="bi bi-pencil"></i></a>
+              {% if exam.allocated_count > 0 %}
+              <a href="{% url 'download_exam_pdf' exam.id %}" class="btn-icon" title="Download PDF" target="_blank"><i class="bi bi-file-pdf"></i></a>
+              <a href="{% url 'download_exam_csv' exam.id %}" class="btn-icon" title="Download CSV"><i class="bi bi-filetype-csv"></i></a>
+              {% endif %}
+              <a href="{% url 'exam_delete' exam.pk %}" class="btn-icon danger" title="Delete"><i class="bi bi-trash"></i></a>
+            </div>
+          </td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="8" style="text-align:center;padding:48px;color:var(--text-muted)">
+          <div style="font-size:2rem;margin-bottom:12px">📋</div>
+          No exams yet. <a href="{% url 'exam_create' %}" style="color:var(--primary-light)">Create your first exam</a>
+        </td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+{% endblock %}

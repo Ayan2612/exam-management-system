@@ -1,0 +1,48 @@
+{% extends 'exams/admin_base.html' %}
+
+{% block title %}{{ title }} — EMS{% endblock %}
+{% block page_title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div style="max-width:600px">
+  <div class="glass-card" style="padding:32px">
+    <form method="post" novalidate>
+      {% csrf_token %}
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
+        <div>
+          <label class="form-label">Room Number *</label>
+          {{ form.room_number }}
+          {% if form.room_number.errors %}<div class="invalid-feedback d-block">{{ form.room_number.errors.0 }}</div>{% endif %}
+        </div>
+        <div>
+          <label class="form-label">Building *</label>
+          {{ form.building }}
+          {% if form.building.errors %}<div class="invalid-feedback d-block">{{ form.building.errors.0 }}</div>{% endif %}
+        </div>
+        <div>
+          <label class="form-label">Seating Capacity *</label>
+          {{ form.capacity }}
+          {% if form.capacity.errors %}<div class="invalid-feedback d-block">{{ form.capacity.errors.0 }}</div>{% endif %}
+        </div>
+        <div>
+          <label class="form-label">Floor Number</label>
+          {{ form.floor }}
+          {% if form.floor.errors %}<div class="invalid-feedback d-block">{{ form.floor.errors.0 }}</div>{% endif %}
+        </div>
+      </div>
+      <div class="mt-3">
+        <div class="form-check">
+          {{ form.is_active }}
+          <label class="form-check-label" for="{{ form.is_active.id_for_label }}" style="color:var(--text-secondary)">
+            Available for exam allocation
+          </label>
+        </div>
+      </div>
+      <div style="display:flex;gap:12px;margin-top:28px">
+        <button type="submit" class="btn-primary-glow"><i class="bi bi-check-lg"></i><span>{{ action }} Room</span></button>
+        <a href="{% url 'room_list' %}" class="btn-ghost"><i class="bi bi-x"></i><span>Cancel</span></a>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
