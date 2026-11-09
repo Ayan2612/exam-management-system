@@ -21,7 +21,7 @@
   <aside class="sidebar" id="sidebar">
     <!-- Brand -->
     <div class="sidebar-brand">
-      <div class="brand-icon">🏛️</div>
+      <div class="brand-logo-wrap"><img src="{% static 'images/jiit-logo.png' %}" alt="JIIT logo" class="brand-logo"></div>
       <div class="brand-text">
         <h4>Exam Division</h4>
         <span>University Portal</span>
@@ -61,7 +61,7 @@
       </a>
 
       <div class="nav-section-label mt-2">Public</div>
-      <a href="{% url 'student_search' %}" class="nav-link" target="_blank">
+      <a href="{% url 'student_login' %}" class="nav-link" target="_blank">
         <i class="bi bi-search-heart"></i>
         <span>Student Portal</span>
         <i class="bi bi-box-arrow-up-right ms-auto" style="font-size:0.65rem;color:var(--text-muted)"></i>
@@ -74,10 +74,13 @@
 
       <div class="divider"></div>
 
-      <a href="{% url 'admin_logout' %}" class="nav-link" style="color:#fca5a5">
-        <i class="bi bi-box-arrow-left" style="color:#ef4444"></i>
-        <span>Logout</span>
-      </a>
+      <form method="post" action="{% url 'admin_logout' %}" class="sidebar-logout-form">
+        {% csrf_token %}
+        <button type="submit" class="nav-link sidebar-logout-button">
+          <i class="bi bi-box-arrow-left"></i>
+          <span>Sign out</span>
+        </button>
+      </form>
     </nav>
 
     <!-- User info at bottom -->
@@ -110,10 +113,10 @@
           <i class="bi bi-clock me-1"></i>
           <span id="currentTime"></span>
         </span>
-        <div class="user-badge">
+        <div class="user-badge" aria-label="Signed in as {{ request.user.username }}">
           <div class="user-avatar">{{ request.user.username|first|upper }}</div>
-          <span style="font-size:0.85rem;font-weight:500">{{ request.user.username }}</span>
-          <i class="bi bi-chevron-down" style="font-size:0.7rem;color:var(--text-muted)"></i>
+          <span class="user-badge-name">{{ request.user.username }}</span>
+          <span class="user-badge-role">Administrator</span>
         </div>
       </div>
     </header>
@@ -125,7 +128,7 @@
       <div class="alert-ems alert-{{ message.tags }}" data-dismiss="true">
         <i class="bi bi-{% if message.tags == 'success' %}check-circle-fill{% elif message.tags == 'danger' %}exclamation-triangle-fill{% elif message.tags == 'warning' %}exclamation-circle-fill{% else %}info-circle-fill{% endif %}"></i>
         <span>{{ message }}</span>
-        <button onclick="this.parentElement.remove()" style="margin-left:auto;background:none;border:none;color:inherit;cursor:pointer;padding:0 4px">✕</button>
+        <button onclick="this.parentElement.remove()" style="margin-left:auto;background:none;border:none;color:inherit;cursor:pointer;padding:0 4px"><i class="bi bi-x-lg" aria-hidden="true"></i></button>
       </div>
       {% endfor %}
     </div>

@@ -3,19 +3,28 @@ Views for Exam Management System
 Demonstrates Django MVT - Modules 2-6, CO1-CO5
 """
 import json
+from functools import wraps
 from django.shortcuts import render, redirect, get_object_or_404
+from django.core.exceptions import PermissionDenied
 from django.contrib.auth import login, logout, authenticate
+from django.contrib.auth.models import User
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
-from django.http import JsonResponse, HttpResponse, FileResponse
+from django.http import JsonResponse, HttpResponse, FileResponse, HttpResponseForbidden
 from django.views.decorators.http import require_POST
 from django.db.models import Q, Count
 from django.core.paginator import Paginator
+from django.core import signing
+from django.core.mail import send_mail
+from django.urls import reverse
+from django.utils import timezone
+from django.db import transaction
+from django.conf import settings
 
 from .models import Student, Room, Exam, SeatingAllocation
 from .forms import (
     AdminLoginForm, StudentForm, RoomForm, ExamForm,
-    CSVUploadForm, SeatingAllocationForm, StudentSearchForm
+    CSVUploadForm, SeatingAllocationForm, StudentSearchForm, StudentRegistrationForm, StudentPortalLookupForm
 )
 from .utils import (
     allocate_seats, save_allocations,
@@ -25,6 +34,31 @@ from .utils import (
 )
 
 
+def staff_required(view_func):
+    """Allow staff accounts only on administrative pages."""
+    @wraps(view_func)
+    def _wrapped(request, *args, **kwargs):
+        if not request.user.is_authenticated:
+            return redirect(settings.LOGIN_URL + '?next=' + request.path)
+        if not (request.user.is_staff or request.user.is_superuser):
+            return redirect('student_dashboard' if hasattr(request.user, 'student_profile') else 'student_login')
+        return view_func(request, *args, **kwargs)
+    return _wrapped
+
+
+def student_required(view_func):
+    """Allow only verified student accounts linked to a student record."""
+    @wraps(view_func)
+    def _wrapped(request, *args, **kwargs):
+        if not request.user.is_authenticated:
+            return redirect('student_login')
+        if request.user.is_staff or request.user.is_superuser:
+            return redirect('dashboard')
+        if not hasattr(request.user, 'student_profile'):
+            logout(request)
+            return redirect('student_login')
+        return view_func(request, *args, **kwargs)
+    return _wrapped
 # ════════════════════════════════════════════════
 # PUBLIC VIEWS
 # ════════════════════════════════════════════════
@@ -41,12 +75,16 @@ def home(request):
     return render(request, 'exams/home.html', {'stats': stats, 'recent_exams': recent_exams})
 
 
+@login_required(login_url='student_login')
 def student_search(request):
-    """Public student seat search page with AJAX"""
+    """Legacy seat lookup retained for signed-in staff; students use their dashboard."""
+    if not (request.user.is_staff or request.user.is_superuser):
+        return redirect('student_dashboard')
     form = StudentSearchForm()
     return render(request, 'exams/student_search.html', {'form': form})
 
 
+@login_required(login_url='student_login')
 def ajax_search_seat(request):
     """
     AJAX endpoint - search seat by roll number
@@ -59,6 +97,8 @@ def ajax_search_seat(request):
 
         if not roll_number:
             return JsonResponse({'found': False, 'error': 'Please enter a roll number.'})
+        if not (request.user.is_staff or request.user.is_superuser) and (not hasattr(request.user, 'student_profile') or request.user.student_profile.roll_number.lower() != roll_number.lower()):
+            return JsonResponse({'found': False, 'error': 'You can only look up your own examination details.'}, status=403)
 
         try:
             student = Student.objects.get(roll_number__iexact=roll_number)
@@ -109,7 +149,7 @@ def ajax_search_seat(request):
 def admin_login(request):
     """Admin login view"""
     if request.user.is_authenticated:
-        return redirect('dashboard')
+        return redirect('dashboard' if request.user.is_staff or request.user.is_superuser else 'student_dashboard')
 
     if request.method == 'POST':
         form = AdminLoginForm(request, data=request.POST)
@@ -117,7 +157,7 @@ def admin_login(request):
             user = form.get_user()
             if user.is_staff or user.is_superuser:
                 login(request, user)
-                messages.success(request, f'Welcome back, {user.get_full_name() or user.username}! 👋')
+                messages.success(request, f'Welcome back, {user.get_full_name() or user.username}!')
                 return redirect('dashboard')
             else:
                 messages.error(request, 'Access denied. Admin privileges required.')
@@ -129,7 +169,8 @@ def admin_login(request):
     return render(request, 'exams/login.html', {'form': form})
 
 
-@login_required
+@staff_required
+@require_POST
 def admin_logout(request):
     """Admin logout view"""
     logout(request)
@@ -141,7 +182,7 @@ def admin_logout(request):
 # DASHBOARD - Protected
 # ════════════════════════════════════════════════
 
-@login_required
+@staff_required
 def dashboard(request):
     """Admin dashboard with statistics"""
     stats = {
@@ -166,7 +207,7 @@ def dashboard(request):
 # STUDENT VIEWS - Module 4, CO3
 # ════════════════════════════════════════════════
 
-@login_required
+@staff_required
 def student_list(request):
     """List all students with search/filter"""
     q = request.GET.get('q', '').strip()
@@ -201,7 +242,7 @@ def student_list(request):
     })
 
 
-@login_required
+@staff_required
 def student_create(request):
     """Create a new student"""
     if request.method == 'POST':
@@ -217,7 +258,7 @@ def student_create(request):
     return render(request, 'exams/student_form.html', {'form': form, 'action': 'Add', 'title': 'Add New Student'})
 
 
-@login_required
+@staff_required
 def student_edit(request, pk):
     """Edit existing student"""
     student = get_object_or_404(Student, pk=pk)
@@ -234,7 +275,7 @@ def student_edit(request, pk):
     return render(request, 'exams/student_form.html', {'form': form, 'action': 'Edit', 'title': 'Edit Student', 'student': student})
 
 
-@login_required
+@staff_required
 def student_delete(request, pk):
     """Delete a student"""
     student = get_object_or_404(Student, pk=pk)
@@ -250,7 +291,7 @@ def student_delete(request, pk):
     })
 
 
-@login_required
+@staff_required
 def student_import(request):
     """Import students from CSV or Excel"""
     if request.method == 'POST':
@@ -285,7 +326,7 @@ def student_import(request):
 # ROOM VIEWS - Module 4, CO3
 # ════════════════════════════════════════════════
 
-@login_required
+@staff_required
 def room_list(request):
     """List all rooms"""
     rooms = Room.objects.annotate(
@@ -294,7 +335,7 @@ def room_list(request):
     return render(request, 'exams/room_list.html', {'rooms': rooms})
 
 
-@login_required
+@staff_required
 def room_create(request):
     """Create a new room"""
     if request.method == 'POST':
@@ -308,7 +349,7 @@ def room_create(request):
     return render(request, 'exams/room_form.html', {'form': form, 'action': 'Add', 'title': 'Add New Room'})
 
 
-@login_required
+@staff_required
 def room_edit(request, pk):
     """Edit existing room"""
     room = get_object_or_404(Room, pk=pk)
@@ -323,7 +364,7 @@ def room_edit(request, pk):
     return render(request, 'exams/room_form.html', {'form': form, 'action': 'Edit', 'title': 'Edit Room', 'room': room})
 
 
-@login_required
+@staff_required
 def room_delete(request, pk):
     """Delete a room"""
     room = get_object_or_404(Room, pk=pk)
@@ -343,7 +384,7 @@ def room_delete(request, pk):
 # EXAM VIEWS - Core project logic
 # ════════════════════════════════════════════════
 
-@login_required
+@staff_required
 def exam_list(request):
     """List all exams"""
     exams = Exam.objects.annotate(
@@ -352,7 +393,7 @@ def exam_list(request):
     return render(request, 'exams/exam_list.html', {'exams': exams})
 
 
-@login_required
+@staff_required
 def exam_create(request):
     """Create a new exam"""
     if request.method == 'POST':
@@ -366,7 +407,7 @@ def exam_create(request):
     return render(request, 'exams/exam_form.html', {'form': form, 'action': 'Create', 'title': 'Create New Exam'})
 
 
-@login_required
+@staff_required
 def exam_edit(request, pk):
     """Edit existing exam"""
     exam = get_object_or_404(Exam, pk=pk)
@@ -381,7 +422,7 @@ def exam_edit(request, pk):
     return render(request, 'exams/exam_form.html', {'form': form, 'action': 'Edit', 'title': 'Edit Exam', 'exam': exam})
 
 
-@login_required
+@staff_required
 def exam_delete(request, pk):
     """Delete an exam"""
     exam = get_object_or_404(Exam, pk=pk)
@@ -401,7 +442,7 @@ def exam_delete(request, pk):
 # SEATING ALLOCATION - Core Algorithm
 # ════════════════════════════════════════════════
 
-@login_required
+@staff_required
 def seating_plan(request):
     """Create seating allocation for an exam"""
     if request.method == 'POST':
@@ -441,7 +482,7 @@ def seating_plan(request):
     })
 
 
-@login_required
+@staff_required
 def seating_detail(request, exam_id):
     """View complete seating allocation for an exam"""
     exam = get_object_or_404(Exam, pk=exam_id)
@@ -469,7 +510,7 @@ def seating_detail(request, exam_id):
     })
 
 
-@login_required
+@staff_required
 def clear_seating(request, exam_id):
     """Clear all seating allocations for an exam"""
     exam = get_object_or_404(Exam, pk=exam_id)
@@ -489,15 +530,30 @@ def clear_seating(request, exam_id):
 # ADMIT CARD & REPORTS - Module 6, CO5
 # ════════════════════════════════════════════════
 
-def view_admit_card(request, allocation_id):
-    """Render printable web view of Admit Card (Module 6, CO5)"""
+def _admit_card_allocation(request, allocation_id):
+    """Resolve a staff request or a short-lived signed student roll-lookup token."""
     allocation = get_object_or_404(SeatingAllocation, pk=allocation_id)
+    if request.user.is_authenticated and (request.user.is_staff or request.user.is_superuser):
+        return allocation
+    token = request.GET.get('token', '')
+    try:
+        payload = signing.loads(token, salt='exams.student.admit-card', max_age=15 * 60)
+    except (signing.BadSignature, signing.SignatureExpired):
+        raise PermissionDenied('Please look up your roll number again to access this admit card.')
+    if payload.get('allocation_id') != allocation.pk or payload.get('student_id') != allocation.student_id:
+        raise PermissionDenied('This admit-card link is not valid for this student.')
+    return allocation
+
+
+def view_admit_card(request, allocation_id):
+    """Render the admit card using a short-lived signed lookup token."""
+    allocation = _admit_card_allocation(request, allocation_id)
     return render(request, 'exams/admit_card.html', {'allocation': allocation})
 
 
 def download_admit_card(request, allocation_id):
-    """Download admit card PDF for a student"""
-    allocation = get_object_or_404(SeatingAllocation, pk=allocation_id)
+    """Download the admit card using a short-lived signed lookup token."""
+    allocation = _admit_card_allocation(request, allocation_id)
 
     buffer = generate_admit_card_pdf(allocation)
 
@@ -507,7 +563,7 @@ def download_admit_card(request, allocation_id):
     return response
 
 
-@login_required
+@staff_required
 def download_room_pdf(request, exam_id, room_id):
     """Download room-wise seating PDF"""
     exam = get_object_or_404(Exam, pk=exam_id)
@@ -520,7 +576,7 @@ def download_room_pdf(request, exam_id, room_id):
     return response
 
 
-@login_required
+@staff_required
 def download_room_csv_view(request, exam_id, room_id):
     """Download room-wise seating CSV"""
     exam = get_object_or_404(Exam, pk=exam_id)
@@ -528,7 +584,7 @@ def download_room_csv_view(request, exam_id, room_id):
     return export_room_csv(exam, room)
 
 
-@login_required
+@staff_required
 def download_exam_pdf(request, exam_id):
     """Download full exam summary PDF"""
     exam = get_object_or_404(Exam, pk=exam_id)
@@ -539,7 +595,7 @@ def download_exam_pdf(request, exam_id):
     return response
 
 
-@login_required
+@staff_required
 def download_exam_csv(request, exam_id):
     """Download full exam summary CSV"""
     exam = get_object_or_404(Exam, pk=exam_id)
@@ -557,7 +613,90 @@ def download_csv_template(request):
     response['Content-Disposition'] = 'attachment; filename="student_import_template.csv"'
     writer = csv.writer(response)
     writer.writerow(['roll_number', 'name', 'email', 'course', 'semester', 'phone'])
-    writer.writerow(['21B15CS001', 'Rahul Sharma', 'rahul@college.edu', 'B.Tech CSE', '5', '9876543210'])
-    writer.writerow(['21B15CS002', 'Priya Singh', 'priya@college.edu', 'B.Tech CSE', '5', '9876543211'])
-    writer.writerow(['21B15ECE001', 'Amit Kumar', 'amit@college.edu', 'B.Tech ECE', '3', '9876543212'])
+    writer.writerow(['992301030018', 'Rahul Sharma', 'rahul@college.edu', 'B.Tech CSE', '7', '9876543210'])
+    writer.writerow(['992401030018', 'Priya Singh', 'priya@college.edu', 'B.Tech CSE', '5', '9876543211'])
+    writer.writerow(['992501020001', 'Amit Kumar', 'amit@college.edu', 'B.Tech ECE', '3', '9876543212'])
+    writer.writerow(['992601020001', 'Neha Verma', 'neha@college.edu', 'BCA', '1', '9876543213'])
     return response
+
+# ════════════════════════════════════════════════
+# STUDENT PORTAL - Self-service and verified accounts
+# ════════════════════════════════════════════════
+
+def student_register(request):
+    """Legacy registration route now opens the roll-number-only portal."""
+    return redirect('student_portal')
+
+
+def student_verify_email(request, token):
+    """Verify a time-limited signed email token and activate the account."""
+    try:
+        payload = signing.loads(token, salt='exams.student.email-verification', max_age=60 * 60 * 24)
+        student = Student.objects.select_related('user').get(pk=payload['student_id'], user_id=payload['user_id'])
+    except (signing.BadSignature, signing.SignatureExpired, Student.DoesNotExist, KeyError, TypeError):
+        return render(request, 'exams/student_verification_result.html', {'verified': False, 'message': 'This verification link is invalid or has expired. Please register again to request a fresh link.'})
+    user = student.user
+    if user.is_active:
+        return render(request, 'exams/student_verification_result.html', {'verified': True, 'message': 'Your email address is already verified. You can sign in to your student portal.'})
+    user.is_active = True
+    user.save(update_fields=['is_active'])
+    login(request, user, backend='django.contrib.auth.backends.ModelBackend')
+    return render(request, 'exams/student_verification_result.html', {'verified': True, 'message': 'Your email has been verified. Your Student Examination Portal is ready.', 'continue_to_portal': True})
+
+
+def student_login(request):
+    """Legacy login URL now opens the roll-number-only student portal."""
+    return redirect('student_portal')
+
+
+def student_dashboard(request):
+    """Compatibility route for old links; open the roll-number portal."""
+    return redirect('student_portal')
+
+
+def _jiit_semester_from_roll_number(roll_number, fallback_semester, course='B.Tech CSE'):
+    """Infer the current B.Tech semester from JIIT roll numbers beginning with 992YY."""
+    roll_number = (roll_number or '').strip()
+    if not (roll_number.startswith('992') and len(roll_number) >= 9 and roll_number[3:5].isdigit()):
+        return fallback_semester, None
+
+    admission_year = 2000 + int(roll_number[3:5])
+    today = timezone.localdate()
+    # JIIT odd semester runs roughly Aug-Jan; even semester runs Feb-Jul.
+    semester = 2 * (today.year - admission_year) + (1 if today.month >= 8 or today.month <= 2 else 2)
+    return min(max(semester, 1), 6 if course == 'BCA' else 8), admission_year
+
+
+def student_portal(request):
+    """Look up a student's examination details using their JIIT roll number."""
+    form = StudentPortalLookupForm(request.POST or None)
+    context = {'form': form, 'student': None, 'upcoming_rows': [], 'history_rows': []}
+    if request.method == 'POST' and form.is_valid():
+        roll_number = form.cleaned_data['roll_number'].strip()
+        student = Student.objects.filter(roll_number__iexact=roll_number).first()
+        if not student:
+            form.add_error('roll_number', 'No student record found. Please check your roll number.')
+        else:
+            today = timezone.localdate()
+            portal_semester, admission_year = _jiit_semester_from_roll_number(student.roll_number, student.semester, student.course)
+            allocations = SeatingAllocation.objects.filter(student=student).select_related('exam', 'room').order_by('exam__exam_date', 'exam__start_time')
+            allocation_by_exam = {item.exam_id: item for item in allocations}
+            upcoming = Exam.objects.filter(exam_date__gte=today, status__in=['scheduled', 'ongoing']).filter(Q(target_course='') | Q(target_course=student.course)).filter(Q(target_semester__isnull=True) | Q(target_semester=portal_semester)).order_by('exam_date', 'start_time')
+            history = Exam.objects.filter(Q(exam_date__lt=today) | Q(status='completed')).filter(Q(target_course='') | Q(target_course=student.course)).filter(Q(target_semester__isnull=True) | Q(target_semester=portal_semester)).order_by('-exam_date', '-start_time')[:10]
+            upcoming_rows = [{'exam': exam, 'allocation': allocation_by_exam.get(exam.pk), 'admit_token': signing.dumps({'allocation_id': allocation_by_exam[exam.pk].pk, 'student_id': student.pk}, salt='exams.student.admit-card') if allocation_by_exam.get(exam.pk) else ''} for exam in upcoming]
+            history_rows = [{'exam': exam, 'allocation': allocation_by_exam.get(exam.pk)} for exam in history]
+            context.update({
+                'student': student, 'portal_semester': portal_semester, 'admission_year': admission_year,
+                'upcoming_rows': upcoming_rows, 'history_rows': history_rows,
+                'upcoming_count': len(upcoming_rows), 'allocated_count': allocations.count(),
+                'admit_card_count': allocations.count(),
+            })
+    return render(request, 'exams/student_dashboard.html', context)
+
+
+@student_required
+@require_POST
+def student_logout(request):
+    logout(request)
+    messages.info(request, 'You have been signed out.')
+    return redirect('student_login')

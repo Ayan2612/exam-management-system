@@ -9,6 +9,13 @@ urlpatterns = [
     # ── Public URLs ──────────────────────────────
     path('', views.home, name='home'),
     path('search/', views.student_search, name='student_search'),
+    path('student/register/', views.student_register, name='student_register'),
+    path('student/verify/<str:token>/', views.student_verify_email, name='student_verify_email'),
+    path('student/login/', views.student_login, name='student_login'),
+    path('student/portal/', views.student_portal, name='student_portal'),
+    path('student-portal/', views.student_portal, name='student_portal_short'),
+    path('student/dashboard/', views.student_dashboard, name='student_dashboard'),
+    path('student/logout/', views.student_logout, name='student_logout'),
     path('ajax/search-seat/', views.ajax_search_seat, name='ajax_search_seat'),
     path('admit-card/<int:allocation_id>/', views.download_admit_card, name='download_admit_card'),
     path('admit-card/<int:allocation_id>/view/', views.view_admit_card, name='view_admit_card'),

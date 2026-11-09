@@ -11,7 +11,7 @@ Developed in alignment with the **Full Stack Development Lab (Course Code: 24B15
 ### 1. 🛡️ Staff & Administration Portal
 - **Secure Authentication**: Protected dashboard accessible only by authorized staff and examination controllers.
 - **Student Data Management**: Complete CRUD operations, multi-parameter search (Roll number, Name, Course, Semester).
-- **Bulk CSV / Excel Ingestion**: Upload student rosters using `.csv`, `.xlsx`, or `.xls` with duplicate roll number validation.
+- **Bulk CSV / Excel Ingestion**: Upload student rosters using `.csv`, `.xlsx`, or `.xls`; use 12-digit JIIT-style roll numbers (9923/9924/9925/9926 for 2023/2024/2025/2026 batches).
 - **Room & Capacity Management**: Add and configure exam rooms, building blocks, floors, and strict capacity limits.
 - **Exam Scheduling**: Create and schedule examinations with subject codes, dates, and session timings.
 
@@ -79,12 +79,18 @@ Open `http://127.0.0.1:8000/` in your browser.
 
 ---
 
-## 🔑 Default Administrator Credentials
+## 🔐 Create an Administrator Account
 
-- **Username**: `admin`
-- **Password**: `admin123`
+Create your own administrator account locally after running migrations:
+
+```bash
+python manage.py createsuperuser
+```
+
 - **Admin Portal**: `http://127.0.0.1:8000/admin-login/`
 - **Student Search**: `http://127.0.0.1:8000/search/`
+
+Do not commit real credentials or secret keys to the repository.
 
 ---
 
@@ -146,3 +152,42 @@ exam_management/
 - **CO3 (Module 4)**: Django ORM relationships (1-to-many, many-to-many through model), ModelForms, and CRUD.
 - **CO4 (Module 5)**: Authentication, authorization, access restrictions, and form validation.
 - **CO5 (Module 6)**: Asynchronous AJAX communication, dynamic PDF generation with ReportLab, and CSV export.
+
+
+## Student Portal (Roll Number Lookup)
+
+Open `/student/portal/` from the home page and enter the student's university roll number. The portal displays the matching student's profile basics, course/semester-specific upcoming examination schedule, seating allocation, admit-card links and examination history.
+
+No student registration, password or email verification is required. Administrators must first add/import the student's record and keep their roll number accurate. Use the 12-digit JIIT-style format: `9923…` (2023), `9924…` (2024), `9925…` (2025), or `9926…` (2026). During CSV/Excel import, an existing student is matched by exact roll number first and registered email second; this lets an updated roll number replace the old one while preserving the same student record and its seating allocations. The current semester is inferred from the admission year for these roll numbers (B.Tech up to semester 8; BCA up to semester 6).
+
+Admit-card links are signed and expire after 15 minutes. The roll-number-only lookup is intended for a classroom/demo project: a roll number is an identifier, not a secret, so anyone who knows a student's roll number may be able to view the portal details. Do not expose sensitive personal information or use this approach for confidential student records in a real deployment.
+
+Administrators can optionally target an exam to a course and semester. Leave either audience field blank to make that dimension open to all students. Seating allocation validates selected students against the configured audience.
+
+### Django security settings
+
+Set `DJANGO_SECRET_KEY` to a long random secret and set `DJANGO_DEBUG=False` plus `DJANGO_ALLOWED_HOSTS` to your real hostnames before any public deployment. The fallback key in settings is for local development only. Do not commit `.env` or real credentials.
+
+## Simple roll-number Student Portal
+
+Open `/student/portal/` (or use the Student Portal link on the home page), enter the university roll number and view that student's course/semester-specific exam schedule, seating allocation, admit-card links and examination history. No student registration, password or email verification is required.
+
+**Demo limitation:** a roll number is an identifier, not a secret. Anyone who knows a student's roll number may be able to look up the public portal details. Do not expose sensitive personal data on this page or use roll-number-only access for confidential records in a real deployment. Admit-card links are signed and expire after 15 minutes.
+
+### Standardize existing legacy student roll numbers
+
+Back up your local database before applying this operation. The command maps the existing semester to a batch (Sem 7/8 → 2023, Sem 5/6 → 2024, Sem 3/4 → 2025, Sem 1/2 → 2026) and updates each existing Student row in place, preserving its primary key and related seating allocations.
+
+Preview the exact changes first (no database writes):
+
+```bash
+python manage.py standardize_student_roll_numbers
+```
+
+After reviewing the proposed roll-number mapping, apply it:
+
+```bash
+python manage.py standardize_student_roll_numbers --apply
+```
+
+The generated demo format is `992Y0103NNNN`; the final four digits are based on the old roll number's numeric suffix where possible. This is a project demo convention, not a claim that the programme segment is an official institute-issued code. The command refuses to proceed if it encounters unsupported semesters or a target-roll collision.
