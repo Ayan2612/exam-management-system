@@ -79,12 +79,18 @@ Open `http://127.0.0.1:8000/` in your browser.
 
 ---
 
-## 🔑 Default Administrator Credentials
+## 🔐 Create an Administrator Account
 
-- **Username**: `admin`
-- **Password**: `admin123`
+Create your own administrator account locally after running migrations:
+
+```bash
+python manage.py createsuperuser
+```
+
 - **Admin Portal**: `http://127.0.0.1:8000/admin-login/`
 - **Student Search**: `http://127.0.0.1:8000/search/`
+
+Do not commit real credentials or secret keys to the repository.
 
 ---
 
