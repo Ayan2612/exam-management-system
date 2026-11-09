@@ -118,6 +118,12 @@ class SeatingAllocationForm(forms.Form):
         cleaned_data = super().clean()
         rooms = cleaned_data.get('rooms')
         students = cleaned_data.get('students')
+        exam = cleaned_data.get('exam')
+        if exam and students:
+            if exam.target_course and students.exclude(course=exam.target_course).exists():
+                raise forms.ValidationError('Selected students must belong to the examination course.')
+            if exam.target_semester and students.exclude(semester=exam.target_semester).exists():
+                raise forms.ValidationError('Selected students must belong to the examination semester.')
         if rooms and students:
             total_capacity = sum(r.capacity for r in rooms)
             total_students = students.count()
