@@ -40,6 +40,21 @@
         </div>
       </div>
 
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-top:20px">
+        <div>
+          <label class="form-label">Applicable Course</label>
+          {{ form.target_course }}
+          <small class="text-muted">Leave blank to publish to all courses.</small>
+          {% if form.target_course.errors %}<div class="invalid-feedback d-block">{{ form.target_course.errors.0 }}</div>{% endif %}
+        </div>
+        <div>
+          <label class="form-label">Applicable Semester</label>
+          {{ form.target_semester }}
+          <small class="text-muted">Leave blank to publish to all semesters.</small>
+          {% if form.target_semester.errors %}<div class="invalid-feedback d-block">{{ form.target_semester.errors.0 }}</div>{% endif %}
+        </div>
+      </div>
+
       <div style="margin-top:20px">
         <label class="form-label">Status</label>
         {{ form.status }}
