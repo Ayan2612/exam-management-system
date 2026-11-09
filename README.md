@@ -198,3 +198,8 @@ python manage.py runserver
 ```
 
 Student accounts remain inactive until email verification. Admit-card view and PDF endpoints require sign-in and enforce ownership; staff accounts retain access for administration.
+
+
+### Django security settings
+
+Set `DJANGO_SECRET_KEY` to a long random secret and set `DJANGO_DEBUG=False` plus `DJANGO_ALLOWED_HOSTS` to your real hostnames before any public deployment. The fallback key in settings is for local development only. Do not commit `.env` or real credentials.
