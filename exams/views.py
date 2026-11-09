@@ -623,42 +623,8 @@ def download_csv_template(request):
 # ════════════════════════════════════════════════
 
 def student_register(request):
-    """Create a pending student account after matching the pre-enrolled roster."""
-    if request.user.is_authenticated:
-        return redirect('dashboard' if request.user.is_staff else 'student_dashboard')
-    if request.method == 'POST':
-        form = StudentRegistrationForm(request.POST)
-        if form.is_valid():
-            student = form.student_record
-            try:
-                with transaction.atomic():
-                    user = student.user
-                    if user is None:
-                        user = User(username=student.roll_number, email=student.email, first_name=student.name[:150], is_active=False)
-                    user.email = student.email
-                    user.first_name = student.name[:150]
-                    user.set_password(form.cleaned_data['password1'])
-                    user.is_active = False
-                    user.save()
-                    student.user = user
-                    student.save(update_fields=['user', 'updated_at'])
-                    token = signing.dumps({'student_id': student.pk, 'user_id': user.pk}, salt='exams.student.email-verification')
-                    verify_url = request.build_absolute_uri(reverse('student_verify_email', args=[token]))
-                    subject = 'Verify your JIIT Student Examination Portal account'
-                    message = (
-                        'Hello ' + student.name + ',\n\n'
-                        'We received a request to create your Student Examination Portal account.\n'
-                        'Verify your registered email address using the link below (valid for 24 hours):\n\n'
-                        + verify_url + '\n\n'
-                        + 'If you did not request this account, you can ignore this email.\n'
-                    )
-                send_mail(subject, message, settings.DEFAULT_FROM_EMAIL, [student.email], fail_silently=False)
-                return render(request, 'exams/student_registration_sent.html', {'email': student.email})
-            except Exception:
-                messages.error(request, 'We could not send the verification email. Please try again later or contact the portal administrator.')
-    else:
-        form = StudentRegistrationForm()
-    return render(request, 'exams/student_register.html', {'form': form})
+    """Legacy registration route now opens the roll-number-only portal."""
+    return redirect('student_portal')
 
 
 def student_verify_email(request, token):
