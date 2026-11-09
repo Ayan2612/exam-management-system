@@ -1,16 +1,80 @@
 {% load static %}
-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>My Examination Portal | JIIT</title><link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet"><link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet"><link href="{% static 'css/student-portal.css' %}" rel="stylesheet"></head>
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Student Portal | JIIT Examination System</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+  <link href="{% static 'css/student-portal.css' %}" rel="stylesheet">
+</head>
 <body class="student-dashboard-page">
-<header class="student-topbar"><a class="student-brand" href="{% url 'student_dashboard' %}"><img src="{% static 'images/jiit-logo.png' %}" alt="JIIT"><span><strong>JIIT Examination Portal</strong><small>Student services</small></span></a><div class="student-topbar-right"><span class="student-account-name"><i class="bi bi-person-circle"></i> {{ student.name }}</span><form method="post" action="{% url 'student_logout' %}">{% csrf_token %}<button class="student-logout" type="submit">Sign out</button></form></div></header>
+<header class="student-topbar">
+  <a class="student-brand" href="{% url 'home' %}">
+    <img src="{% static 'images/jiit-logo.png' %}" alt="JIIT">
+    <span><strong>JIIT Examination Portal</strong><small>Student self-service</small></span>
+  </a>
+  <a class="student-logout" href="{% url 'home' %}"><i class="bi bi-house"></i> Home</a>
+</header>
 <main class="student-dashboard-wrap">
-<section class="student-welcome"><div><div class="student-kicker">STUDENT DASHBOARD</div><h1>Good to see you, {{ student.name|title }}</h1><p>{{ student.roll_number }} <span>·</span> {{ student.course }} <span>·</span> Semester {{ student.semester }}</p></div><div class="student-session"><i class="bi bi-calendar3"></i> Academic examination schedule</div></section>
-<section class="student-summary" aria-label="Examination summary"><div><span>Upcoming examinations</span><strong>{{ upcoming_count }}</strong></div><div><span>Seat allocations</span><strong>{{ allocated_count }}</strong></div><div><span>Admit cards available</span><strong>{{ admit_card_count }}</strong></div></section>
-<section class="student-section"><div class="student-section-heading"><div><div class="student-kicker">YOUR SCHEDULE</div><h2>Upcoming examinations</h2></div><span class="student-count">{{ upcoming_count }} listed</span></div>
-{% if upcoming_rows %}<div class="student-table-wrap"><table class="student-table"><thead><tr><th>Examination</th><th>Date & time</th><th>Venue / seat</th><th>Admit card</th></tr></thead><tbody>
-{% for row in upcoming_rows %}<tr><td><strong>{{ row.exam.subject }}</strong><small>{{ row.exam.subject_code|default:"Subject code not provided" }}</small></td><td><strong>{{ row.exam.exam_date|date:"D, d M Y" }}</strong><small>{{ row.exam.start_time|time:"g:i A" }} – {{ row.exam.end_time|time:"g:i A" }}</small></td>
-<td>{% if row.allocation %}<strong>{{ row.allocation.room.building }} · Room {{ row.allocation.room.room_number }}</strong><small>Seat {{ row.allocation.seat_number }}</small>{% else %}<span class="student-pending">Seat not allotted yet</span><small>Check again after allocation</small>{% endif %}</td>
-<td>{% if row.allocation %}<a class="student-text-link" href="{% url 'view_admit_card' row.allocation.id %}">View hall ticket</a><a class="student-download-link" href="{% url 'download_admit_card' row.allocation.id %}">Download PDF</a>{% else %}<span class="student-muted small">Available after seat allotment</span>{% endif %}</td></tr>{% endfor %}
-</tbody></table></div>{% else %}<div class="student-empty"><i class="bi bi-calendar2-week"></i><h3>No upcoming examinations</h3><p>Your future examination schedule will appear here once it is published by the Examination Office.</p></div>{% endif %}</section>
-<section class="student-section"><div class="student-section-heading"><div><div class="student-kicker">PAST RECORDS</div><h2>Examination history</h2></div></div>
-{% if history_rows %}<div class="student-history-list">{% for row in history_rows %}<div class="student-history-row"><div><strong>{{ row.exam.subject }}</strong><small>{{ row.exam.exam_date|date:"d M Y" }} · {{ row.exam.get_status_display }}</small></div>{% if row.allocation %}<span>{{ row.allocation.room.room_number }} · Seat {{ row.allocation.seat_number }}</span>{% else %}<span class="student-muted">No allocation record</span>{% endif %}</div>{% endfor %}</div>{% else %}<p class="student-muted">Completed examinations will appear here.</p>{% endif %}</section>
-<footer class="student-footer">Jaypee Institute of Information Technology · Examination Division</footer></main></body></html>
+  {% if not student %}
+  <section class="student-lookup-hero">
+    <div class="student-kicker">STUDENT SERVICES</div>
+    <h1>Welcome to your examination portal</h1>
+    <p>Enter your university roll number to view your examination schedule, seating details and admit cards.</p>
+    <form method="post" class="student-lookup-form">
+      {% csrf_token %}
+      <label for="{{ form.roll_number.id_for_label }}">University roll number</label>
+      <div class="student-lookup-input">{{ form.roll_number }}<button type="submit"><i class="bi bi-arrow-right-circle"></i> View my portal</button></div>
+      {% for error in form.roll_number.errors %}<small class="field-error">{{ error }}</small>{% endfor %}
+      <small class="student-muted">Use the roll number registered by the Examination Office.</small>
+    </form>
+  </section>
+  <section class="student-portal-features">
+    <div><i class="bi bi-calendar2-week"></i><strong>Exam schedule</strong><span>Dates, subjects and timings</span></div>
+    <div><i class="bi bi-geo-alt"></i><strong>Seating details</strong><span>Building, room and seat number</span></div>
+    <div><i class="bi bi-file-earmark-pdf"></i><strong>Admit cards</strong><span>View and download your hall ticket</span></div>
+  </section>
+  {% else %}
+  <div class="student-result-toolbar">
+    <a href="{% url 'student_portal' %}"><i class="bi bi-arrow-left"></i> Search another roll number</a>
+    <button type="button" onclick="window.print()" class="student-print-button"><i class="bi bi-printer"></i> Print page</button>
+  </div>
+  <section class="student-welcome">
+    <div><div class="student-kicker">PERSONAL EXAMINATION DASHBOARD</div><h1>Welcome, {{ student.name|title }}</h1>
+      <p>{{ student.roll_number }} <span>·</span> {{ student.course }} <span>·</span> Semester {{ student.semester }}</p></div>
+    <div class="student-session"><i class="bi bi-person-badge"></i> Student profile</div>
+  </section>
+  <section class="student-profile-strip">
+    <div><span>Student name</span><strong>{{ student.name }}</strong></div>
+    <div><span>Roll number</span><strong>{{ student.roll_number }}</strong></div>
+    <div><span>Course / Semester</span><strong>{{ student.course }} · Sem {{ student.semester }}</strong></div>
+    <div><span>Registered email</span><strong>{{ student.email }}</strong></div>
+  </section>
+  <section class="student-summary" aria-label="Examination summary">
+    <div><span>Upcoming examinations</span><strong>{{ upcoming_count }}</strong></div>
+    <div><span>Seat allocations</span><strong>{{ allocated_count }}</strong></div>
+    <div><span>Admit cards available</span><strong>{{ admit_card_count }}</strong></div>
+  </section>
+  <section class="student-section">
+    <div class="student-section-heading"><div><div class="student-kicker">YOUR SCHEDULE</div><h2>Upcoming examinations</h2></div><span class="student-count">{{ upcoming_count }} listed</span></div>
+    {% if upcoming_rows %}
+    <div class="student-table-wrap"><table class="student-table"><thead><tr><th>Examination</th><th>Date & time</th><th>Venue / seat</th><th>Hall ticket</th></tr></thead><tbody>
+      {% for row in upcoming_rows %}<tr>
+        <td><strong>{{ row.exam.subject }}</strong><small>{{ row.exam.subject_code|default:"Subject code not provided" }}</small></td>
+        <td><strong>{{ row.exam.exam_date|date:"D, d M Y" }}</strong><small>{{ row.exam.start_time|time:"g:i A" }} – {{ row.exam.end_time|time:"g:i A" }}</small></td>
+        <td>{% if row.allocation %}<strong>{{ row.allocation.room.building }} · Room {{ row.allocation.room.room_number }}</strong><small>Seat {{ row.allocation.seat_number }}</small>{% else %}<span class="student-pending">Seat not allotted yet</span><small>Check after seating allocation</small>{% endif %}</td>
+        <td>{% if row.allocation %}<a class="student-text-link" href="{% url 'view_admit_card' row.allocation.id %}?token={{ row.admit_token|urlencode }}" target="_blank">View / Print</a><a class="student-download-link" href="{% url 'download_admit_card' row.allocation.id %}?token={{ row.admit_token|urlencode }}">Download PDF</a>{% else %}<span class="student-muted small">After seat allotment</span>{% endif %}</td>
+      </tr>{% endfor %}
+    </tbody></table></div>
+    {% else %}<div class="student-empty"><i class="bi bi-calendar2-week"></i><h3>No upcoming examinations</h3><p>Your future examination schedule will appear here once it is published.</p></div>{% endif %}
+  </section>
+  <section class="student-section">
+    <div class="student-section-heading"><div><div class="student-kicker">PAST RECORDS</div><h2>Examination history</h2></div></div>
+    {% if history_rows %}<div class="student-history-list">{% for row in history_rows %}<div class="student-history-row"><div><strong>{{ row.exam.subject }}</strong><small>{{ row.exam.exam_date|date:"d M Y" }} · {{ row.exam.get_status_display }}</small></div>{% if row.allocation %}<span>{{ row.allocation.room.room_number }} · Seat {{ row.allocation.seat_number }}</span>{% else %}<span class="student-muted">No allocation record</span>{% endif %}</div>{% endfor %}</div>{% else %}<p class="student-muted">Completed examinations will appear here.</p>{% endif %}
+  </section>
+  <section class="student-notice"><i class="bi bi-info-circle"></i><div><strong>Examination day reminders</strong><p>Carry your admit card and valid institute identity card. Reach the examination venue before the reporting time and follow the instructions issued by the Examination Office.</p></div></section>
+  {% endif %}
+  <footer class="student-footer">Jaypee Institute of Information Technology · Examination Division</footer>
+</main>
+</body></html>
