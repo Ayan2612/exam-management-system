@@ -8,6 +8,7 @@ Utility functions for Exam Management System
 import csv
 import io
 from django.http import HttpResponse
+from django.db.models import Q
 from reportlab.lib.pagesizes import A4, landscape
 from reportlab.lib import colors
 from reportlab.lib.units import cm
@@ -20,6 +21,29 @@ from reportlab.lib.colors import HexColor
 # ─────────────────────────────────────────────
 # SEATING ALLOCATION ALGORITHM (Core Logic)
 # ─────────────────────────────────────────────
+
+def room_capacity_available(exam, rooms):
+    """Count free physical seats after all overlapping exams in the same rooms."""
+    from .models import Exam, SeatingAllocation
+
+    active_rooms = [room for room in rooms if room.is_active]
+    room_ids = [room.pk for room in active_rooms]
+    if not room_ids:
+        return 0
+    overlapping_ids = Exam.objects.filter(
+        exam_date=exam.exam_date,
+        start_time__lt=exam.end_time,
+        end_time__gt=exam.start_time,
+    ).values_list('pk', flat=True)
+    occupied = {}
+    allocations = SeatingAllocation.objects.filter(
+        room_id__in=room_ids, exam_id__in=overlapping_ids
+    ).values_list('room_id', 'seat_number')
+    for room_id, seat_number in allocations:
+        occupied.setdefault(room_id, set()).add(seat_number)
+    return sum(max(room.capacity - len(occupied.get(room.pk, set())), 0) for room in active_rooms)
+
+
 
 def allocate_seats(exam, rooms, students):
     """
@@ -45,9 +69,16 @@ def allocate_seats(exam, rooms, students):
         if student.pk not in already_allocated_ids
     ]
 
+    from .models import Exam
+    overlapping_exam_ids = Exam.objects.filter(
+        exam_date=exam.exam_date,
+        start_time__lt=exam.end_time,
+        end_time__gt=exam.start_time,
+    ).values_list('pk', flat=True)
+
     occupied_by_room = {}
     for room_id, seat_number in SeatingAllocation.objects.filter(
-        exam=exam, room__in=sorted_rooms
+        exam_id__in=overlapping_exam_ids, room__in=sorted_rooms
     ).values_list('room_id', 'seat_number'):
         occupied_by_room.setdefault(room_id, set()).add(seat_number)
 
