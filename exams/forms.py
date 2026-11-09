@@ -147,3 +147,71 @@ class StudentSearchForm(forms.Form):
         empty_label='-- Select Exam --',
         required=False,
     )
+
+
+class StudentRegistrationForm(forms.Form):
+    """Verify a pre-enrolled student record before creating a portal account."""
+    roll_number = forms.CharField(max_length=20, label='University roll number')
+    email = forms.EmailField(label='Registered college email')
+    password1 = forms.CharField(
+        label='Create password',
+        widget=forms.PasswordInput(attrs={'autocomplete': 'new-password'}),
+    )
+    password2 = forms.CharField(
+        label='Confirm password',
+        widget=forms.PasswordInput(attrs={'autocomplete': 'new-password'}),
+    )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        for field in self.fields.values():
+            field.widget.attrs.update({'class': 'form-control'})
+        self.fields['roll_number'].widget.attrs.update({
+            'placeholder': 'Enter the roll number provided by the institute',
+            'autocomplete': 'username',
+        })
+        self.fields['email'].widget.attrs.update({
+            'placeholder': 'Use the email registered with the Examination Office',
+            'autocomplete': 'email',
+        })
+
+    def clean(self):
+        from django.contrib.auth import password_validation
+        from django.contrib.auth.models import User
+        from django.core.exceptions import ValidationError
+        from django.db.models import Q
+
+        cleaned = super().clean()
+        password1 = cleaned.get('password1')
+        password2 = cleaned.get('password2')
+        if password1 and password2 and password1 != password2:
+            self.add_error('password2', 'The passwords do not match.')
+
+        roll_number = cleaned.get('roll_number', '').strip()
+        email = cleaned.get('email', '').strip()
+        if roll_number and email:
+            try:
+                student = Student.objects.get(
+                    roll_number__iexact=roll_number,
+                    email__iexact=email,
+                )
+            except Student.DoesNotExist:
+                raise forms.ValidationError(
+                    'We could not match that roll number and registered email. Please contact the Examination Office.'
+                )
+            if student.user_id and student.user.is_active:
+                raise forms.ValidationError(
+                    'A verified portal account already exists for this student. Please sign in instead.'
+                )
+            if User.objects.filter(Q(username__iexact=roll_number) & ~Q(pk=student.user_id)).exists():
+                raise forms.ValidationError(
+                    'This roll number is already linked to an account. Please contact the Examination Office.'
+                )
+            self.student_record = student
+            if password1:
+                candidate = User(username=student.roll_number, email=student.email)
+                try:
+                    password_validation.validate_password(password1, candidate)
+                except ValidationError as exc:
+                    self.add_error('password1', exc)
+        return cleaned
