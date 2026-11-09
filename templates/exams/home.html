@@ -24,7 +24,10 @@
     </div>
     <div style="display:flex;align-items:center;gap:12px">
       <a href="{% url 'student_login' %}" class="btn-ghost" style="padding:8px 18px">
-        <i class="bi bi-search text-primary"></i> Student Portal
+        <i class="bi bi-person"></i> Student Sign In
+      </a>
+      <a href="{% url 'student_register' %}" class="btn-ghost" style="padding:8px 18px">
+        <i class="bi bi-person-plus"></i> Register
       </a>
       <a href="{% url 'admin_login' %}" class="btn-primary-glow" style="padding:8px 20px">
         <i class="bi bi-shield-lock-fill"></i> Staff / Admin Login
