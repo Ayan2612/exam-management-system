@@ -74,10 +74,13 @@
 
       <div class="divider"></div>
 
-      <a href="{% url 'admin_logout' %}" class="nav-link" style="color:#fca5a5">
-        <i class="bi bi-box-arrow-left" style="color:#ef4444"></i>
-        <span>Logout</span>
-      </a>
+      <form method="post" action="{% url 'admin_logout' %}" class="sidebar-logout-form">
+        {% csrf_token %}
+        <button type="submit" class="nav-link sidebar-logout-button">
+          <i class="bi bi-box-arrow-left"></i>
+          <span>Sign out</span>
+        </button>
+      </form>
     </nav>
 
     <!-- User info at bottom -->
