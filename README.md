@@ -154,51 +154,15 @@ exam_management/
 - **CO5 (Module 6)**: Asynchronous AJAX communication, dynamic PDF generation with ReportLab, and CSV export.
 
 
-## Student Examination Portal
+## Student Portal (Roll Number Lookup)
 
-Students can create their own portal account only when their roll number and email match a record already entered by the Examination Office.
+Open `/student/portal/` from the home page and enter the student's university roll number. The portal displays the matching student's profile basics, course/semester-specific upcoming examination schedule, seating allocation, admit-card links and examination history.
 
-1. Open **Student Portal → Register**.
-2. Enter the university roll number and registered email address.
-3. Choose a password and submit the form.
-4. Open the verification link sent to the registered email. Links expire after 24 hours.
-5. Sign in to view course/semester-specific upcoming exams, room and seat allocations, and available admit cards.
+No student registration, password or email verification is required. Administrators must first add/import the student's record and keep their roll number accurate.
 
-Administrators choose an **Applicable Course** and **Applicable Semester** while creating an exam. Leave either field blank to publish the exam to all courses or semesters. Seating allocation validates the selected students against that audience.
+Admit-card links are signed and expire after 15 minutes. The roll-number-only lookup is intended for a classroom/demo project: a roll number is an identifier, not a secret, so anyone who knows a student's roll number may be able to view the portal details. Do not expose sensitive personal information or use this approach for confidential student records in a real deployment.
 
-### Email configuration
-
-For local development, if SMTP settings are not supplied, Django prints verification emails (including the verification URL) in the terminal running `python manage.py runserver`.
-
-For actual email delivery, copy `.env.example` to `.env`, fill in the SMTP values, and restart Django. The settings module loads `.env` automatically. Keep `.env` private; it is ignored by Git. You can also set these environment variables directly before starting Django:
-
-- `EMAIL_HOST` (for Gmail, `smtp.gmail.com`)
-- `EMAIL_PORT` (usually `587`)
-- `EMAIL_USE_TLS` (`True`)
-- `EMAIL_HOST_USER` (the sending mailbox)
-- `EMAIL_HOST_PASSWORD` (an app password or SMTP credential; never commit it)
-- `DEFAULT_FROM_EMAIL` (the sender name and address)
-
-Example for PowerShell (replace the values locally; do not commit credentials):
-
-```powershell
-$env:EMAIL_HOST="smtp.gmail.com"
-$env:EMAIL_PORT="587"
-$env:EMAIL_USE_TLS="True"
-$env:EMAIL_HOST_USER="your-sending-address@gmail.com"
-$env:EMAIL_HOST_PASSWORD="your-app-password"
-$env:DEFAULT_FROM_EMAIL="JIIT Examination Portal <your-sending-address@gmail.com>"
-```
-
-Run the database migrations after pulling the preview branch:
-
-```bash
-python manage.py migrate
-python manage.py runserver
-```
-
-Student accounts remain inactive until email verification. Admit-card view and PDF endpoints require sign-in and enforce ownership; staff accounts retain access for administration.
-
+Administrators can optionally target an exam to a course and semester. Leave either audience field blank to make that dimension open to all students. Seating allocation validates selected students against the configured audience.
 
 ### Django security settings
 
