@@ -23,7 +23,7 @@ from django.conf import settings
 from .models import Student, Room, Exam, SeatingAllocation
 from .forms import (
     AdminLoginForm, StudentForm, RoomForm, ExamForm,
-    CSVUploadForm, SeatingAllocationForm, StudentSearchForm, StudentRegistrationForm
+    CSVUploadForm, SeatingAllocationForm, StudentSearchForm, StudentRegistrationForm, StudentPortalLookupForm
 )
 from .utils import (
     allocate_seats, save_allocations,
@@ -668,43 +668,44 @@ def student_verify_email(request, token):
 
 
 def student_login(request):
-    """Authenticate verified student accounts only."""
-    if request.user.is_authenticated:
-        return redirect('dashboard' if request.user.is_staff else 'student_dashboard')
-    if request.method == 'POST':
-        form = AdminLoginForm(request, data=request.POST)
-        if form.is_valid():
-            user = form.get_user()
-            if user.is_staff or user.is_superuser:
-                messages.error(request, 'Please use the staff login page for administrator accounts.')
-            elif hasattr(user, 'student_profile'):
-                login(request, user)
-                return redirect('student_dashboard')
-            else:
-                messages.error(request, 'This account is not linked to a student record.')
-        else:
-            messages.error(request, 'Invalid credentials. If you just registered, verify your email first.')
-    else:
-        form = AdminLoginForm()
-    return render(request, 'exams/student_login.html', {'form': form})
+    """Legacy login URL now opens the roll-number-only student portal."""
+    return redirect('student_portal')
 
 
-@student_required
 def student_dashboard(request):
-    """Show the signed-in student's schedule, seat allocations and admit cards."""
-    student = request.user.student_profile
-    today = timezone.localdate()
-    allocations = SeatingAllocation.objects.filter(student=student).select_related('exam', 'room').order_by('exam__exam_date', 'exam__start_time')
-    allocation_by_exam = {item.exam_id: item for item in allocations}
-    upcoming = Exam.objects.filter(exam_date__gte=today, status__in=['scheduled', 'ongoing']).filter(Q(target_course='') | Q(target_course=student.course)).filter(Q(target_semester__isnull=True) | Q(target_semester=student.semester)).order_by('exam_date', 'start_time')
-    upcoming_rows = [{'exam': exam, 'allocation': allocation_by_exam.get(exam.pk)} for exam in upcoming]
-    history = Exam.objects.filter(Q(exam_date__lt=today) | Q(status='completed')).filter(Q(target_course='') | Q(target_course=student.course)).filter(Q(target_semester__isnull=True) | Q(target_semester=student.semester)).order_by('-exam_date', '-start_time')[:10]
-    history_rows = [{'exam': exam, 'allocation': allocation_by_exam.get(exam.pk)} for exam in history]
-    return render(request, 'exams/student_dashboard.html', {
-        'student': student, 'upcoming_rows': upcoming_rows, 'history_rows': history_rows,
-        'upcoming_count': len(upcoming_rows), 'allocated_count': allocations.count(),
-        'admit_card_count': allocations.count(),
-    })
+    """Compatibility route for old links; open the roll-number portal."""
+    return redirect('student_portal')
+
+
+def student_portal(request):
+    """Look up a student's examination details using their university roll number."""
+    form = StudentPortalLookupForm(request.POST or None)
+    context = {'form': form, 'student': None, 'upcoming_rows': [], 'history_rows': []}
+    if request.method == 'POST' and form.is_valid():
+        roll_number = form.cleaned_data['roll_number'].strip()
+        student = Student.objects.filter(roll_number__iexact=roll_number).first()
+        if not student:
+            form.add_error('roll_number', 'No student record found. Please check your roll number.')
+        else:
+            today = timezone.localdate()
+            allocations = SeatingAllocation.objects.filter(student=student).select_related('exam', 'room').order_by('exam__exam_date', 'exam__start_time')
+            allocation_by_exam = {item.exam_id: item for item in allocations}
+            upcoming = Exam.objects.filter(exam_date__gte=today, status__in=['scheduled', 'ongoing']).filter(Q(target_course='') | Q(target_course=student.course)).filter(Q(target_semester__isnull=True) | Q(target_semester=student.semester)).order_by('exam_date', 'start_time')
+            history = Exam.objects.filter(Q(exam_date__lt=today) | Q(status='completed')).filter(Q(target_course='') | Q(target_course=student.course)).filter(Q(target_semester__isnull=True) | Q(target_semester=student.semester)).order_by('-exam_date', '-start_time')[:10]
+            upcoming_rows = [{'exam': exam, 'allocation': allocation_by_exam.get(exam.pk)} for exam in upcoming]
+            history_rows = [{'exam': exam, 'allocation': allocation_by_exam.get(exam.pk)} for exam in history]
+            admit_tokens = {}
+            for allocation in allocations:
+                admit_tokens[allocation.pk] = signing.dumps(
+                    {'allocation_id': allocation.pk, 'student_id': student.pk},
+                    salt='exams.student.admit-card',
+                )
+            context.update({
+                'student': student, 'upcoming_rows': upcoming_rows, 'history_rows': history_rows,
+                'upcoming_count': len(upcoming_rows), 'allocated_count': allocations.count(),
+                'admit_card_count': allocations.count(), 'admit_tokens': admit_tokens,
+            })
+    return render(request, 'exams/student_dashboard.html', context)
 
 
 @student_required
