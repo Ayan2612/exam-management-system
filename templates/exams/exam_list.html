@@ -62,7 +62,7 @@
         </tr>
         {% empty %}
         <tr><td colspan="8" style="text-align:center;padding:48px;color:var(--text-muted)">
-          <div style="font-size:2rem;margin-bottom:12px">📋</div>
+          <div style="font-size:2rem;margin-bottom:12px;color:#64748b"><i class="bi bi-clipboard2-list"></i></div>
           No exams yet. <a href="{% url 'exam_create' %}" style="color:var(--primary-light)">Create your first exam</a>
         </td></tr>
         {% endfor %}
