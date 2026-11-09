@@ -47,7 +47,7 @@ class StudentForm(StyledFormMixin, forms.ModelForm):
         model = Student
         fields = ['roll_number', 'name', 'email', 'course', 'semester', 'phone']
         widgets = {
-            'roll_number': forms.TextInput(attrs={'placeholder': 'e.g., 21B15CS001'}),
+            'roll_number': forms.TextInput(attrs={'placeholder': 'e.g., 992401030018'}),
             'name': forms.TextInput(attrs={'placeholder': 'Full name'}),
             'email': forms.EmailInput(attrs={'placeholder': 'student@college.edu'}),
             'phone': forms.TextInput(attrs={'placeholder': '10-digit mobile number'}),
@@ -140,7 +140,7 @@ class StudentSearchForm(forms.Form):
         max_length=20,
         widget=forms.TextInput(attrs={
             'class': 'form-control form-control-lg',
-            'placeholder': 'Enter your Roll Number (e.g., 21B15CS001)',
+            'placeholder': 'Enter your Roll Number (e.g., 992401030018)',
             'id': 'roll_number_input',
             'autocomplete': 'off',
         }),
