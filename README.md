@@ -203,3 +203,9 @@ Student accounts remain inactive until email verification. Admit-card view and P
 ### Django security settings
 
 Set `DJANGO_SECRET_KEY` to a long random secret and set `DJANGO_DEBUG=False` plus `DJANGO_ALLOWED_HOSTS` to your real hostnames before any public deployment. The fallback key in settings is for local development only. Do not commit `.env` or real credentials.
+
+## Simple roll-number Student Portal
+
+Open `/student/portal/` (or use the Student Portal link on the home page), enter the university roll number and view that student's course/semester-specific exam schedule, seating allocation, admit-card links and examination history. No student registration, password or email verification is required.
+
+**Demo limitation:** a roll number is an identifier, not a secret. Anyone who knows a student's roll number may be able to look up the public portal details. Do not expose sensitive personal data on this page or use roll-number-only access for confidential records in a real deployment. Admit-card links are signed and expire after 15 minutes.
