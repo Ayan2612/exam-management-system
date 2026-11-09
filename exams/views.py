@@ -310,7 +310,7 @@ def student_import(request):
 
             if filename.endswith('.csv'):
                 success, errors = import_students_from_csv(uploaded_file)
-            elif filename.endswith(('.xlsx', '.xls')):
+            elif filename.endswith('.xlsx'):
                 success, errors = import_students_from_excel(uploaded_file)
             else:
                 messages.error(request, 'Only CSV or Excel files are supported.')
@@ -461,9 +461,19 @@ def seating_plan(request):
             students = form.cleaned_data['students']
 
             try:
-                # Run the seating allocation algorithm
-                allocations = allocate_seats(exam, rooms, students)
-                created, skipped = save_allocations(allocations)
+                # Serialize allocations targeting the same physical rooms. On databases
+                # supporting row locks, a second admin waits and recalculates availability.
+                with transaction.atomic():
+                    locked_room_ids = list(
+                        Room.objects.select_for_update()
+                        .filter(pk__in=[room.pk for room in rooms], is_active=True)
+                        .order_by('pk')
+                        .values_list('pk', flat=True)
+                    )
+                    if len(locked_room_ids) != len(rooms):
+                        raise ValueError("One or more selected rooms are no longer active.")
+                    allocations = allocate_seats(exam, rooms, students)
+                    created, skipped = save_allocations(allocations)
 
                 messages.success(
                     request,
