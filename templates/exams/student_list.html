@@ -95,7 +95,7 @@
         {% empty %}
         <tr>
           <td colspan="8" style="text-align:center;padding:48px;color:var(--text-muted)">
-            <div style="font-size:2rem;margin-bottom:12px">👥</div>
+            <div style="font-size:2rem;margin-bottom:12px;color:#64748b"><i class="bi bi-people"></i></div>
             No students found.
             {% if q or selected_course or selected_semester %}
               <a href="{% url 'student_list' %}" style="color:var(--primary-light)">Clear filters</a>
