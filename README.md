@@ -190,4 +190,4 @@ After reviewing the proposed roll-number mapping, apply it:
 python manage.py standardize_student_roll_numbers --apply
 ```
 
-The generated demo format is `992Y0103NNNN`; the final four digits are based on the old roll number's numeric suffix where possible. This is a project demo convention, not a claim that the programme segment is an official institute-issued code. The command refuses to proceed if it encounters unsupported semesters or a target-roll collision.
+The generated demo format is `99YY0103NNNN` (for example, `992401030018` for 2024 and `992501030018` for 2025); the final four digits are based on the old roll number's numeric suffix where possible. This is a project demo convention, not a claim that the programme segment is an official institute-issued code. The command refuses to proceed if it encounters unsupported semesters or a target-roll collision.
