@@ -130,6 +130,7 @@ def admin_login(request):
 
 
 @login_required
+@require_POST
 def admin_logout(request):
     """Admin logout view"""
     logout(request)
