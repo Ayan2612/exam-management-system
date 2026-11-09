@@ -200,7 +200,7 @@ def dashboard(request):
 # STUDENT VIEWS - Module 4, CO3
 # ════════════════════════════════════════════════
 
-@login_required
+@staff_required
 def student_list(request):
     """List all students with search/filter"""
     q = request.GET.get('q', '').strip()
@@ -235,7 +235,7 @@ def student_list(request):
     })
 
 
-@login_required
+@staff_required
 def student_create(request):
     """Create a new student"""
     if request.method == 'POST':
@@ -251,7 +251,7 @@ def student_create(request):
     return render(request, 'exams/student_form.html', {'form': form, 'action': 'Add', 'title': 'Add New Student'})
 
 
-@login_required
+@staff_required
 def student_edit(request, pk):
     """Edit existing student"""
     student = get_object_or_404(Student, pk=pk)
@@ -268,7 +268,7 @@ def student_edit(request, pk):
     return render(request, 'exams/student_form.html', {'form': form, 'action': 'Edit', 'title': 'Edit Student', 'student': student})
 
 
-@login_required
+@staff_required
 def student_delete(request, pk):
     """Delete a student"""
     student = get_object_or_404(Student, pk=pk)
@@ -284,7 +284,7 @@ def student_delete(request, pk):
     })
 
 
-@login_required
+@staff_required
 def student_import(request):
     """Import students from CSV or Excel"""
     if request.method == 'POST':
@@ -319,7 +319,7 @@ def student_import(request):
 # ROOM VIEWS - Module 4, CO3
 # ════════════════════════════════════════════════
 
-@login_required
+@staff_required
 def room_list(request):
     """List all rooms"""
     rooms = Room.objects.annotate(
@@ -328,7 +328,7 @@ def room_list(request):
     return render(request, 'exams/room_list.html', {'rooms': rooms})
 
 
-@login_required
+@staff_required
 def room_create(request):
     """Create a new room"""
     if request.method == 'POST':
@@ -342,7 +342,7 @@ def room_create(request):
     return render(request, 'exams/room_form.html', {'form': form, 'action': 'Add', 'title': 'Add New Room'})
 
 
-@login_required
+@staff_required
 def room_edit(request, pk):
     """Edit existing room"""
     room = get_object_or_404(Room, pk=pk)
@@ -357,7 +357,7 @@ def room_edit(request, pk):
     return render(request, 'exams/room_form.html', {'form': form, 'action': 'Edit', 'title': 'Edit Room', 'room': room})
 
 
-@login_required
+@staff_required
 def room_delete(request, pk):
     """Delete a room"""
     room = get_object_or_404(Room, pk=pk)
@@ -377,7 +377,7 @@ def room_delete(request, pk):
 # EXAM VIEWS - Core project logic
 # ════════════════════════════════════════════════
 
-@login_required
+@staff_required
 def exam_list(request):
     """List all exams"""
     exams = Exam.objects.annotate(
@@ -386,7 +386,7 @@ def exam_list(request):
     return render(request, 'exams/exam_list.html', {'exams': exams})
 
 
-@login_required
+@staff_required
 def exam_create(request):
     """Create a new exam"""
     if request.method == 'POST':
@@ -400,7 +400,7 @@ def exam_create(request):
     return render(request, 'exams/exam_form.html', {'form': form, 'action': 'Create', 'title': 'Create New Exam'})
 
 
-@login_required
+@staff_required
 def exam_edit(request, pk):
     """Edit existing exam"""
     exam = get_object_or_404(Exam, pk=pk)
@@ -415,7 +415,7 @@ def exam_edit(request, pk):
     return render(request, 'exams/exam_form.html', {'form': form, 'action': 'Edit', 'title': 'Edit Exam', 'exam': exam})
 
 
-@login_required
+@staff_required
 def exam_delete(request, pk):
     """Delete an exam"""
     exam = get_object_or_404(Exam, pk=pk)
@@ -435,7 +435,7 @@ def exam_delete(request, pk):
 # SEATING ALLOCATION - Core Algorithm
 # ════════════════════════════════════════════════
 
-@login_required
+@staff_required
 def seating_plan(request):
     """Create seating allocation for an exam"""
     if request.method == 'POST':
@@ -475,7 +475,7 @@ def seating_plan(request):
     })
 
 
-@login_required
+@staff_required
 def seating_detail(request, exam_id):
     """View complete seating allocation for an exam"""
     exam = get_object_or_404(Exam, pk=exam_id)
@@ -503,7 +503,7 @@ def seating_detail(request, exam_id):
     })
 
 
-@login_required
+@staff_required
 def clear_seating(request, exam_id):
     """Clear all seating allocations for an exam"""
     exam = get_object_or_404(Exam, pk=exam_id)
@@ -547,7 +547,7 @@ def download_admit_card(request, allocation_id):
     return response
 
 
-@login_required
+@staff_required
 def download_room_pdf(request, exam_id, room_id):
     """Download room-wise seating PDF"""
     exam = get_object_or_404(Exam, pk=exam_id)
@@ -560,7 +560,7 @@ def download_room_pdf(request, exam_id, room_id):
     return response
 
 
-@login_required
+@staff_required
 def download_room_csv_view(request, exam_id, room_id):
     """Download room-wise seating CSV"""
     exam = get_object_or_404(Exam, pk=exam_id)
@@ -568,7 +568,7 @@ def download_room_csv_view(request, exam_id, room_id):
     return export_room_csv(exam, room)
 
 
-@login_required
+@staff_required
 def download_exam_pdf(request, exam_id):
     """Download full exam summary PDF"""
     exam = get_object_or_404(Exam, pk=exam_id)
@@ -579,7 +579,7 @@ def download_exam_pdf(request, exam_id):
     return response
 
 
-@login_required
+@staff_required
 def download_exam_csv(request, exam_id):
     """Download full exam summary CSV"""
     exam = get_object_or_404(Exam, pk=exam_id)
