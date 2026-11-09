@@ -313,7 +313,7 @@ def student_import(request):
             elif filename.endswith('.xlsx'):
                 success, errors = import_students_from_excel(uploaded_file)
             else:
-                messages.error(request, 'Only CSV or Excel files are supported.')
+                messages.error(request, 'Only CSV and .xlsx files are supported.')
                 return render(request, 'exams/student_import.html', {'form': form})
 
             if success:
