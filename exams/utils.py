@@ -23,90 +23,88 @@ from reportlab.lib.colors import HexColor
 
 def allocate_seats(exam, rooms, students):
     """
-    Core seating allocation algorithm.
-    
-    Algorithm:
-    1. Fetch selected students and rooms
-    2. Sort rooms by room_number
-    3. Check total capacity >= total students
-    4. Assign students sequentially to rooms
-    5. Assign seat numbers starting from 1 per room
-    6. Return allocation plan (without saving)
-    
-    Args:
-        exam: Exam instance
-        rooms: QuerySet of Room instances
-        students: QuerySet of Student instances
-    
-    Returns:
-        list of dicts: [{student, exam, room, seat_number}, ...]
+    Build a seating plan using only unoccupied seats.
+
+    Existing allocations for this exam are preserved. Students already
+    allocated are skipped, and occupied seat numbers are never reused.
     """
     from .models import SeatingAllocation
 
-    if hasattr(rooms, 'order_by'):
-        try:
-            sorted_rooms = list(rooms.order_by('room_number'))
-        except TypeError:
-            sorted_rooms = sorted(list(rooms), key=lambda r: r.room_number)
-    else:
-        sorted_rooms = sorted(list(rooms), key=lambda r: r.room_number)
+    sorted_rooms = sorted(
+        [room for room in rooms if room.is_active],
+        key=lambda room: (room.building, room.room_number)
+    )
+    student_list = sorted(list(students), key=lambda student: student.roll_number)
 
-    if hasattr(students, 'order_by'):
-        try:
-            student_list = list(students.order_by('roll_number'))
-        except TypeError:
-            student_list = sorted(list(students), key=lambda s: s.roll_number)
-    else:
-        student_list = sorted(list(students), key=lambda s: s.roll_number)
+    already_allocated_ids = set(
+        SeatingAllocation.objects.filter(exam=exam)
+        .values_list('student_id', flat=True)
+    )
+    pending_students = [
+        student for student in student_list
+        if student.pk not in already_allocated_ids
+    ]
 
-    total_capacity = sum(r.capacity for r in sorted_rooms)
-    total_students = len(student_list)
+    occupied_by_room = {}
+    for room_id, seat_number in SeatingAllocation.objects.filter(
+        exam=exam, room__in=sorted_rooms
+    ).values_list('room_id', 'seat_number'):
+        occupied_by_room.setdefault(room_id, set()).add(seat_number)
 
-    if total_students > total_capacity:
+    available_capacity = sum(
+        max(room.capacity - len(occupied_by_room.get(room.pk, set())), 0)
+        for room in sorted_rooms
+    )
+    if len(pending_students) > available_capacity:
         raise ValueError(
-            f"Insufficient capacity: {total_students} students but only {total_capacity} seats available."
+            f"Insufficient free capacity: {len(pending_students)} students "
+            f"need seats, but only {available_capacity} unoccupied seats are available."
         )
 
     allocations = []
-    student_idx = 0
-
+    student_index = 0
     for room in sorted_rooms:
-        seat_num = 1
-        while seat_num <= room.capacity and student_idx < total_students:
+        occupied = occupied_by_room.get(room.pk, set())
+        for seat_number in range(1, room.capacity + 1):
+            if student_index >= len(pending_students):
+                break
+            if seat_number in occupied:
+                continue
             allocations.append({
-                'student': student_list[student_idx],
+                'student': pending_students[student_index],
                 'exam': exam,
                 'room': room,
-                'seat_number': seat_num,
+                'seat_number': seat_number,
             })
-            student_idx += 1
-            seat_num += 1
-
-        if student_idx >= total_students:
+            student_index += 1
+        if student_index >= len(pending_students):
             break
 
     return allocations
 
 
 def save_allocations(allocations):
-    """Save allocation plan to database, skip duplicates."""
+    """Persist a complete plan atomically; never leave a partial seating plan."""
+    from django.db import transaction
     from .models import SeatingAllocation
+
     created_count = 0
     skipped_count = 0
 
-    for alloc in allocations:
-        obj, created = SeatingAllocation.objects.get_or_create(
-            student=alloc['student'],
-            exam=alloc['exam'],
-            defaults={
-                'room': alloc['room'],
-                'seat_number': alloc['seat_number'],
-            }
-        )
-        if created:
-            created_count += 1
-        else:
-            skipped_count += 1
+    with transaction.atomic():
+        for alloc in allocations:
+            _, created = SeatingAllocation.objects.get_or_create(
+                student=alloc['student'],
+                exam=alloc['exam'],
+                defaults={
+                    'room': alloc['room'],
+                    'seat_number': alloc['seat_number'],
+                }
+            )
+            if created:
+                created_count += 1
+            else:
+                skipped_count += 1
 
     return created_count, skipped_count
 
