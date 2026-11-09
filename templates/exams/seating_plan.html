@@ -9,6 +9,7 @@
 
 <!-- Hidden rooms data for JS -->
 <script id="roomsData" type="application/json">{{ rooms_data }}</script>
+<script id="examCriteria" type="application/json">{{ exam_criteria|safe }}</script>
 
 <form method="post" novalidate id="allocationForm">
   {% csrf_token %}
@@ -52,7 +53,7 @@
     <div>
       <div class="glass-card" style="padding:24px">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
-          <h6 style="color:var(--primary-light);font-weight:700;text-transform:uppercase;font-size:0.75rem;letter-spacing:0.08em;margin:0">③ Select Students</h6>
+          <h6 style="color:var(--primary-light);font-weight:700;text-transform:uppercase;font-size:0.75rem;letter-spacing:0.08em;margin:0">③ Select Eligible Students</h6><small id="eligibleStudentCount" style="color:var(--text-muted)">Select an exam first</small>
           <div style="display:flex;gap:8px">
             <button type="button" id="selectAllStudents" class="btn-ghost" style="padding:5px 12px;font-size:0.75rem">Select All</button>
             <button type="button" id="deselectAllStudents" class="btn-ghost" style="padding:5px 12px;font-size:0.75rem">None</button>
@@ -64,6 +65,8 @@
           <label style="display:flex;align-items:center;gap:10px;padding:10px;border-radius:8px;cursor:pointer;transition:background 0.15s;margin-bottom:2px" onmouseover="this.style.background='rgba(99,102,241,0.1)'" onmouseout="this.style.background='transparent'">
             <input type="checkbox" name="students" value="{{ student_choice.data.value }}"
               class="student-checkbox"
+              data-course="{{ student_choice.data.instance.course|escape }}"
+              data-semester="{{ student_choice.data.instance.semester }}"
               {% if student_choice.data.selected %}checked{% endif %}
               style="accent-color:var(--primary);width:16px;height:16px;cursor:pointer;flex-shrink:0">
             <span style="color:var(--text-secondary);font-size:0.875rem">{{ student_choice.choice_label }}</span>
@@ -112,6 +115,30 @@
 
 {% block extra_js %}
 <script>
+
+  // Show only students matching the selected exam's course and semester.
+  const criteria = JSON.parse(document.getElementById('examCriteria')?.textContent || '{}');
+  const examSelect = document.getElementById('id_exam');
+  const studentLabels = [...document.querySelectorAll('.student-checkbox')].map(input => input.closest('label'));
+  function filterEligibleStudents() {
+    const selected = criteria[examSelect?.value];
+    let visible = 0;
+    studentLabels.forEach(label => {
+      const input = label.querySelector('.student-checkbox');
+      const eligible = !!selected
+        && (!selected.course || input.dataset.course === selected.course)
+        && (selected.semester === null || selected.semester === undefined
+            || Number(input.dataset.semester) === Number(selected.semester));
+      label.hidden = !eligible;
+      if (!eligible) input.checked = false;
+      if (eligible) visible++;
+    });
+    const count = document.getElementById('eligibleStudentCount');
+    if (count) count.textContent = selected ? visible + ' eligible students' : 'Select an exam first';
+  }
+  examSelect?.addEventListener('change', filterEligibleStudents);
+  filterEligibleStudents();
+
   // Update room capacity data from actual room capacity values
   document.querySelectorAll('.room-checkbox').forEach(cb => {
     // Parse capacity from the label text
