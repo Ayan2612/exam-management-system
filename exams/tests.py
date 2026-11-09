@@ -296,3 +296,25 @@ class AdditionalValidationTests(TestCase):
         success, errors = import_students_from_csv(BytesIO(csv_data.encode('utf-8')))
         self.assertEqual(success, 0)
         self.assertTrue(any('mandatory' in error for error in errors))
+
+
+class StudentInputValidationTests(TestCase):
+    def test_student_form_rejects_non_12_digit_roll_number(self):
+        from .forms import StudentForm
+        form = StudentForm(data={
+            'roll_number': '12345', 'name': 'Test User',
+            'email': 'valid@example.com', 'course': 'B.Tech CSE',
+            'semester': 5, 'phone': '9876543210',
+        })
+        self.assertFalse(form.is_valid())
+        self.assertIn('roll_number', form.errors)
+
+    def test_student_form_rejects_invalid_phone_number(self):
+        from .forms import StudentForm
+        form = StudentForm(data={
+            'roll_number': '992401030088', 'name': 'Test User',
+            'email': 'validphone@example.com', 'course': 'B.Tech CSE',
+            'semester': 5, 'phone': '12345',
+        })
+        self.assertFalse(form.is_valid())
+        self.assertIn('phone', form.errors)
