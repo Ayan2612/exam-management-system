@@ -74,12 +74,16 @@ def home(request):
     return render(request, 'exams/home.html', {'stats': stats, 'recent_exams': recent_exams})
 
 
+@login_required(login_url='student_login')
 def student_search(request):
-    """Public student seat search page with AJAX"""
+    """Legacy seat lookup retained for signed-in staff; students use their dashboard."""
+    if not (request.user.is_staff or request.user.is_superuser):
+        return redirect('student_dashboard')
     form = StudentSearchForm()
     return render(request, 'exams/student_search.html', {'form': form})
 
 
+@login_required(login_url='student_login')
 def ajax_search_seat(request):
     """
     AJAX endpoint - search seat by roll number
@@ -92,6 +96,8 @@ def ajax_search_seat(request):
 
         if not roll_number:
             return JsonResponse({'found': False, 'error': 'Please enter a roll number.'})
+        if not (request.user.is_staff or request.user.is_superuser) and getattr(request.user, 'student_profile', None) is not None and request.user.student_profile.roll_number.lower() != roll_number.lower():
+            return JsonResponse({'found': False, 'error': 'You can only look up your own examination details.'}, status=403)
 
         try:
             student = Student.objects.get(roll_number__iexact=roll_number)
