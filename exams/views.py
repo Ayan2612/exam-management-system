@@ -175,7 +175,7 @@ def admin_logout(request):
 # DASHBOARD - Protected
 # ════════════════════════════════════════════════
 
-@login_required
+@staff_required
 def dashboard(request):
     """Admin dashboard with statistics"""
     stats = {
