@@ -44,6 +44,18 @@ class AdminLoginForm(AuthenticationForm):
 
 class StudentForm(StyledFormMixin, forms.ModelForm):
     """Form for creating/editing students"""
+    def clean_roll_number(self):
+        roll = self.cleaned_data['roll_number'].strip()
+        if not (len(roll) == 12 and roll.isdigit() and roll.startswith('992')):
+            raise forms.ValidationError('Enter a 12-digit JIIT-style roll number beginning with 992.')
+        return roll
+
+    def clean_phone(self):
+        phone = self.cleaned_data.get('phone')
+        if phone and not (phone.isdigit() and len(phone) == 10):
+            raise forms.ValidationError('Phone number must contain exactly 10 digits.')
+        return phone
+
     class Meta:
         model = Student
         fields = ['roll_number', 'name', 'email', 'course', 'semester', 'phone']
