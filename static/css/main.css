@@ -906,3 +906,43 @@ body { color: var(--ink); background: #f5f7fb; }
   .dashboard-lower-grid { grid-template-columns:minmax(0,1fr); }
   .dashboard-section-heading, .dashboard-panel-heading { align-items:flex-start; }
 }
+
+
+/* JIIT identity, compact admin header and refined motion */
+.brand-logo-wrap { width:48px; height:48px; flex:0 0 48px; display:grid; place-items:center; overflow:hidden; border-radius:10px; background:#fff; padding:3px; box-shadow:0 3px 12px rgba(0,0,0,.12); }
+.brand-logo { display:block; width:100%; height:100%; object-fit:contain; }
+.jiit-header-logo { display:block; width:52px; height:62px; object-fit:contain; flex:0 0 auto; }
+.sidebar-brand { gap:12px; }
+.navbar-actions { display:flex; align-items:center; justify-content:flex-end; gap:12px; flex:0 0 auto; min-width:0; }
+.top-navbar { display:flex; align-items:center; justify-content:space-between; gap:16px; min-height:var(--header-height); }
+.user-badge { display:flex; align-items:center; gap:9px; min-width:0; max-width:220px; padding:7px 12px; border:1px solid #e2e8f0; border-radius:999px; background:#fff; box-shadow:0 2px 8px rgba(15,23,42,.04); white-space:nowrap; }
+.user-badge .user-avatar { flex:0 0 34px; width:34px; height:34px; }
+.user-badge-name { color:#1e293b; font-size:.82rem; font-weight:650; overflow:hidden; text-overflow:ellipsis; }
+.user-badge-role { padding-left:8px; border-left:1px solid #e2e8f0; color:#64748b; font-size:.68rem; font-weight:600; }
+@keyframes ems-rise-in { from { opacity:0; transform:translateY(12px); } to { opacity:1; transform:translateY(0); } }
+.dashboard-welcome { animation:ems-rise-in .55s cubic-bezier(.2,.75,.25,1) both; }
+.dashboard-stat { animation:ems-rise-in .55s cubic-bezier(.2,.75,.25,1) both; }
+.dashboard-stat:nth-child(2) { animation-delay:.06s; }
+.dashboard-stat:nth-child(3) { animation-delay:.12s; }
+.dashboard-stat:nth-child(4) { animation-delay:.18s; }
+.dashboard-panel, .dashboard-section { animation:ems-rise-in .6s cubic-bezier(.2,.75,.25,1) both; }
+.dashboard-action:focus-visible { outline:3px solid #93c5fd; outline-offset:3px; }
+@media (max-width: 767px) {
+  .top-navbar { align-items:center; gap:8px; padding:10px 14px; }
+  .top-navbar > div:first-child { flex:1 1 auto; min-width:0; }
+  .page-title { min-width:0; }
+  .page-title h2 { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .page-title p { display:none; }
+  .navbar-actions { flex:0 0 auto; gap:0; }
+  .user-badge { max-width:150px; padding:5px 8px; gap:7px; }
+  .user-badge-role { display:none; }
+  .user-badge-name { max-width:76px; font-size:.78rem; }
+  .jiit-header-logo { width:42px; height:50px; }
+}
+@media (max-width: 420px) {
+  .user-badge { max-width:42px; border-radius:50%; padding:4px; }
+  .user-badge-name, .user-badge-role { display:none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .dashboard-welcome, .dashboard-stat, .dashboard-panel, .dashboard-section { animation:none !important; }
+}
