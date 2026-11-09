@@ -65,10 +65,13 @@ class Command(BaseCommand):
                 continue
 
             old_roll = student.roll_number or ""
+            repeated_prefix = re.fullmatch(r"(992[3-6]0103)(992[3-6][0-9]{8})", old_roll)
             embedded = EMBEDDED_CANONICAL_ROLL.findall(old_roll)
-            if embedded:
-                # If an earlier run accidentally prefixed a valid roll number
-                # to itself, recover the original 12-digit value's last 4 digits.
+            if repeated_prefix:
+                # Repair the exact corruption pattern produced by the earlier command:
+                # a generated 8-digit prefix was prepended to an already-valid 12-digit roll.
+                sequence = int(repeated_prefix.group(2)[-4:])
+            elif embedded:
                 sequence = int(embedded[-1][-4:])
             else:
                 trailing_digits = re.search(r"(\d+)$", old_roll)
