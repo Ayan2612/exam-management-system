@@ -613,9 +613,9 @@ def download_csv_template(request):
     response['Content-Disposition'] = 'attachment; filename="student_import_template.csv"'
     writer = csv.writer(response)
     writer.writerow(['roll_number', 'name', 'email', 'course', 'semester', 'phone'])
-    writer.writerow(['21B15CS001', 'Rahul Sharma', 'rahul@college.edu', 'B.Tech CSE', '5', '9876543210'])
-    writer.writerow(['21B15CS002', 'Priya Singh', 'priya@college.edu', 'B.Tech CSE', '5', '9876543211'])
-    writer.writerow(['21B15ECE001', 'Amit Kumar', 'amit@college.edu', 'B.Tech ECE', '3', '9876543212'])
+    writer.writerow(['992401030018', 'Rahul Sharma', 'rahul@college.edu', 'B.Tech CSE', '5', '9876543210'])
+    writer.writerow(['992401030019', 'Priya Singh', 'priya@college.edu', 'B.Tech CSE', '5', '9876543211'])
+    writer.writerow(['992501020001', 'Amit Kumar', 'amit@college.edu', 'B.Tech ECE', '3', '9876543212'])
     return response
 
 # ════════════════════════════════════════════════
@@ -662,7 +662,7 @@ def _jiit_semester_from_roll_number(roll_number, fallback_semester):
     admission_year = 2000 + int(roll_number[3:5])
     today = timezone.localdate()
     # JIIT odd semester runs roughly Aug-Jan; even semester runs Feb-Jul.
-    semester = 2 * (today.year - admission_year) + (1 if today.month >= 8 or today.month == 1 else 2)
+    semester = 2 * (today.year - admission_year) + (1 if today.month >= 8 or today.month <= 2 else 2)
     return min(max(semester, 1), 8), admission_year
 
 
