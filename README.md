@@ -152,3 +152,49 @@ exam_management/
 - **CO3 (Module 4)**: Django ORM relationships (1-to-many, many-to-many through model), ModelForms, and CRUD.
 - **CO4 (Module 5)**: Authentication, authorization, access restrictions, and form validation.
 - **CO5 (Module 6)**: Asynchronous AJAX communication, dynamic PDF generation with ReportLab, and CSV export.
+
+
+## Student Examination Portal
+
+Students can create their own portal account only when their roll number and email match a record already entered by the Examination Office.
+
+1. Open **Student Portal → Register**.
+2. Enter the university roll number and registered email address.
+3. Choose a password and submit the form.
+4. Open the verification link sent to the registered email. Links expire after 24 hours.
+5. Sign in to view course/semester-specific upcoming exams, room and seat allocations, and available admit cards.
+
+Administrators choose an **Applicable Course** and **Applicable Semester** while creating an exam. Leave either field blank to publish the exam to all courses or semesters. Seating allocation validates the selected students against that audience.
+
+### Email configuration
+
+For local development, if SMTP settings are not supplied, Django prints verification emails (including the verification URL) in the terminal running `python manage.py runserver`.
+
+For actual email delivery, set these environment variables before starting Django:
+
+- `EMAIL_HOST` (for Gmail, `smtp.gmail.com`)
+- `EMAIL_PORT` (usually `587`)
+- `EMAIL_USE_TLS` (`True`)
+- `EMAIL_HOST_USER` (the sending mailbox)
+- `EMAIL_HOST_PASSWORD` (an app password or SMTP credential; never commit it)
+- `DEFAULT_FROM_EMAIL` (the sender name and address)
+
+Example for PowerShell (replace the values locally; do not commit credentials):
+
+```powershell
+$env:EMAIL_HOST="smtp.gmail.com"
+$env:EMAIL_PORT="587"
+$env:EMAIL_USE_TLS="True"
+$env:EMAIL_HOST_USER="your-sending-address@gmail.com"
+$env:EMAIL_HOST_PASSWORD="your-app-password"
+$env:DEFAULT_FROM_EMAIL="JIIT Examination Portal <your-sending-address@gmail.com>"
+```
+
+Run the database migrations after pulling the preview branch:
+
+```bash
+python manage.py migrate
+python manage.py runserver
+```
+
+Student accounts remain inactive until email verification. Admit-card view and PDF endpoints require sign-in and enforce ownership; staff accounts retain access for administration.
