@@ -46,7 +46,7 @@ class Command(BaseCommand):
         )
 
     def handle(self, *args, **options):
-        students = list(Student.objects.exclude(roll_number__regex=r"^992[0-9]{8}$").order_by("pk"))
+        students = list(Student.objects.exclude(roll_number__regex=r"^992[0-9]{9}$").order_by("pk"))
         if not students:
             self.stdout.write(self.style.SUCCESS("No legacy roll numbers found. Nothing to do."))
             return
