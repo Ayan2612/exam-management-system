@@ -93,3 +93,49 @@
   .student-history-row { align-items:flex-start; flex-direction:column; gap:3px; }
 }
 @media(prefers-reduced-motion:reduce) { *,*::before,*::after { scroll-behavior:auto !important; transition:none !important; animation:none !important; } }
+
+/* Roll-number lookup portal */
+.student-lookup-hero { max-width:820px; margin:30px auto 22px; padding:46px 42px; background:#fff; border:1px solid #dce2ea; box-shadow:0 10px 35px rgba(20,35,60,.05); }
+.student-lookup-hero h1 { margin:0 0 10px; color:#172b55; font-size:2rem; font-weight:780; letter-spacing:-.045em; }
+.student-lookup-hero>p { max-width:620px; color:#667085; font-size:.9rem; line-height:1.7; }
+.student-lookup-form { max-width:620px; margin-top:26px; }
+.student-lookup-form label { display:block; margin-bottom:8px; color:#344054; font-size:.8rem; font-weight:700; }
+.student-lookup-input { display:flex; gap:9px; }
+.student-lookup-input .form-control { min-height:49px; border:1px solid #cfd7e3; border-radius:4px; box-shadow:none; }
+.student-lookup-input .form-control:focus { border-color:#6c85aa; box-shadow:0 0 0 3px rgba(36,75,134,.09); }
+.student-lookup-input button { flex:0 0 auto; padding:0 18px; border:1px solid #172b55; border-radius:4px; background:#172b55; color:#fff; font-size:.8rem; font-weight:650; }
+.student-lookup-input button:hover { background:#244b86; }
+.student-lookup-form>.student-muted { display:block; margin-top:9px; font-size:.72rem; }
+.student-portal-features { display:grid; grid-template-columns:repeat(3,1fr); gap:12px; max-width:820px; margin:0 auto 35px; }
+.student-portal-features>div { display:flex; flex-direction:column; gap:6px; padding:19px; border:1px solid #dce2ea; background:#fff; }
+.student-portal-features i { color:#244b86; font-size:1.25rem; }
+.student-portal-features strong { color:#263449; font-size:.82rem; }
+.student-portal-features span { color:#778397; font-size:.72rem; }
+.student-result-toolbar { display:flex; justify-content:space-between; align-items:center; margin-bottom:18px; }
+.student-result-toolbar a { color:#244b86; font-size:.78rem; font-weight:650; text-decoration:none; }
+.student-print-button { padding:7px 12px; border:1px solid #d8dee8; border-radius:4px; background:#fff; color:#344054; font-size:.75rem; }
+.student-profile-strip { display:grid; grid-template-columns:repeat(4,1fr); gap:0; margin:20px 0 0; border:1px solid #dce2ea; background:#fff; }
+.student-profile-strip>div { display:flex; flex-direction:column; gap:6px; padding:14px 16px; border-right:1px solid #e6eaf0; }
+.student-profile-strip>div:last-child { border-right:0; }
+.student-profile-strip span { color:#778397; font-size:.68rem; }
+.student-profile-strip strong { color:#263449; font-size:.76rem; overflow-wrap:anywhere; }
+.student-notice { display:flex; gap:13px; padding:17px 19px; margin:28px 0; border:1px solid #dce2ea; background:#fff; color:#52627a; }
+.student-notice>i { color:#244b86; font-size:1.1rem; }
+.student-notice strong { color:#344054; font-size:.78rem; }
+.student-notice p { margin:4px 0 0; font-size:.75rem; line-height:1.6; }
+@media(max-width:760px) {
+ .student-lookup-hero { margin:18px auto; padding:30px 20px; }
+ .student-lookup-hero h1 { font-size:1.55rem; }
+ .student-lookup-input { flex-direction:column; }
+ .student-lookup-input button { min-height:46px; }
+ .student-portal-features { grid-template-columns:1fr; }
+ .student-profile-strip { grid-template-columns:1fr 1fr; }
+ .student-profile-strip>div:nth-child(2) { border-right:0; }
+ .student-profile-strip>div:nth-child(-n+2) { border-bottom:1px solid #e6eaf0; }
+}
+@media print {
+ .student-topbar,.student-result-toolbar,.student-footer { display:none !important; }
+ .student-dashboard-page { background:#fff; }
+ .student-dashboard-wrap { width:100%; padding:0; }
+ .student-table-wrap,.student-profile-strip,.student-summary { break-inside:avoid; }
+}
