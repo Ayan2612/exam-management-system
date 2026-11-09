@@ -158,7 +158,7 @@ exam_management/
 
 Open `/student/portal/` from the home page and enter the student's university roll number. The portal displays the matching student's profile basics, course/semester-specific upcoming examination schedule, seating allocation, admit-card links and examination history.
 
-No student registration, password or email verification is required. Administrators must first add/import the student's record and keep their roll number accurate. Use the 12-digit JIIT-style format: `9923…` (2023), `9924…` (2024), `9925…` (2025), or `9926…` (2026).
+No student registration, password or email verification is required. Administrators must first add/import the student's record and keep their roll number accurate. Use the 12-digit JIIT-style format: `9923…` (2023), `9924…` (2024), `9925…` (2025), or `9926…` (2026). During CSV/Excel import, an existing student is matched by exact roll number first and registered email second; this lets an updated roll number replace the old one while preserving the same student record and its seating allocations. The current semester is inferred from the admission year for these roll numbers (B.Tech up to semester 8; BCA up to semester 6).
 
 Admit-card links are signed and expire after 15 minutes. The roll-number-only lookup is intended for a classroom/demo project: a roll number is an identifier, not a secret, so anyone who knows a student's roll number may be able to view the portal details. Do not expose sensitive personal information or use this approach for confidential student records in a real deployment.
 
