@@ -94,3 +94,79 @@ class JIITRollNumberSemesterTests(TestCase):
         from .views import _jiit_semester_from_roll_number
         with patch('exams.views.timezone.localdate', return_value=date(2026, 11, 9)):
             self.assertEqual(_jiit_semester_from_roll_number('992601030018', 1), (1, 2026))
+
+
+class ExamAllocationCriteriaTests(TestCase):
+    def setUp(self):
+        from datetime import date, time
+        from .models import Room
+        self.exam = Exam.objects.create(
+            subject='Full Stack Lab', exam_date=date(2026, 12, 1),
+            start_time=time(10), end_time=time(13),
+            target_course='B.Tech CSE', target_semester=5,
+        )
+        self.room = Room.objects.create(
+            room_number='A101', building='Block A', capacity=10,
+        )
+        self.eligible = [
+            Student.objects.create(
+                roll_number=f'9924010300{i:02d}', name=f'Eligible {i}',
+                email=f'eligible{i}@example.com', course='B.Tech CSE', semester=5,
+            ) for i in range(1, 6)
+        ]
+        self.wrong_semester = Student.objects.create(
+            roll_number='992401030099', name='Wrong semester',
+            email='wrongsemester@example.com', course='B.Tech CSE', semester=3,
+        )
+
+    def test_form_rejects_students_outside_exam_semester(self):
+        from .forms import SeatingAllocationForm
+        form = SeatingAllocationForm(data={
+            'exam': self.exam.pk, 'rooms': [self.room.pk],
+            'students': [student.pk for student in self.eligible] + [self.wrong_semester.pk],
+        })
+        self.assertFalse(form.is_valid())
+        self.assertTrue(any('course/semester criteria' in str(error) for error in form.non_field_errors()))
+
+    def test_different_subjects_can_share_room_in_same_slot_with_distinct_seats(self):
+        from datetime import time
+        from .models import SeatingAllocation
+        from .utils import allocate_seats, save_allocations
+        dsa = Exam.objects.create(
+            subject='DSA', exam_date=self.exam.exam_date,
+            start_time=time(10), end_time=time(13),
+            target_course='B.Tech CSE', target_semester=3,
+        )
+        dsa_students = [
+            Student.objects.create(
+                roll_number=f'9925010300{i:02d}', name=f'DSA {i}',
+                email=f'dsa{i}@example.com', course='B.Tech CSE', semester=3,
+            ) for i in range(1, 6)
+        ]
+        self.assertEqual(save_allocations(allocate_seats(dsa, [self.room], dsa_students))[0], 5)
+        self.assertEqual(save_allocations(allocate_seats(self.exam, [self.room], self.eligible))[0], 5)
+        seats = list(SeatingAllocation.objects.filter(room=self.room).values_list('seat_number', flat=True))
+        self.assertEqual(len(seats), 10)
+        self.assertEqual(len(set(seats)), 10)
+
+    def test_overlapping_exams_cannot_exceed_shared_room_capacity(self):
+        from datetime import time
+        from .utils import allocate_seats, save_allocations
+        dsa = Exam.objects.create(
+            subject='DSA', exam_date=self.exam.exam_date,
+            start_time=time(10), end_time=time(13),
+            target_course='B.Tech CSE', target_semester=3,
+        )
+        dsa_students = [
+            Student.objects.create(
+                roll_number=f'9925010400{i:02d}', name=f'DSA Extra {i}',
+                email=f'dsaextra{i}@example.com', course='B.Tech CSE', semester=3,
+            ) for i in range(1, 6)
+        ]
+        save_allocations(allocate_seats(dsa, [self.room], dsa_students))
+        extra = Student.objects.create(
+            roll_number='992401040099', name='Extra',
+            email='extra@example.com', course='B.Tech CSE', semester=5,
+        )
+        with self.assertRaisesMessage(ValueError, 'Insufficient free capacity'):
+            allocate_seats(self.exam, [self.room], self.eligible + [extra])
