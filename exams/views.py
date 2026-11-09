@@ -654,7 +654,7 @@ def student_dashboard(request):
     return redirect('student_portal')
 
 
-def _jiit_semester_from_roll_number(roll_number, fallback_semester):
+def _jiit_semester_from_roll_number(roll_number, fallback_semester, course='B.Tech CSE'):
     """Infer the current B.Tech semester from JIIT roll numbers beginning with 992YY."""
     roll_number = (roll_number or '').strip()
     if not (roll_number.startswith('992') and len(roll_number) >= 9 and roll_number[3:5].isdigit()):
@@ -664,7 +664,7 @@ def _jiit_semester_from_roll_number(roll_number, fallback_semester):
     today = timezone.localdate()
     # JIIT odd semester runs roughly Aug-Jan; even semester runs Feb-Jul.
     semester = 2 * (today.year - admission_year) + (1 if today.month >= 8 or today.month <= 2 else 2)
-    return min(max(semester, 1), 8), admission_year
+    return min(max(semester, 1), 6 if course == 'BCA' else 8), admission_year
 
 
 def student_portal(request):
@@ -678,7 +678,7 @@ def student_portal(request):
             form.add_error('roll_number', 'No student record found. Please check your roll number.')
         else:
             today = timezone.localdate()
-            portal_semester, admission_year = _jiit_semester_from_roll_number(student.roll_number, student.semester)
+            portal_semester, admission_year = _jiit_semester_from_roll_number(student.roll_number, student.semester, student.course)
             allocations = SeatingAllocation.objects.filter(student=student).select_related('exam', 'room').order_by('exam__exam_date', 'exam__start_time')
             allocation_by_exam = {item.exam_id: item for item in allocations}
             upcoming = Exam.objects.filter(exam_date__gte=today, status__in=['scheduled', 'ongoing']).filter(Q(target_course='') | Q(target_course=student.course)).filter(Q(target_semester__isnull=True) | Q(target_semester=portal_semester)).order_by('exam_date', 'start_time')
