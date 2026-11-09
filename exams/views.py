@@ -3,19 +3,27 @@ Views for Exam Management System
 Demonstrates Django MVT - Modules 2-6, CO1-CO5
 """
 import json
+from functools import wraps
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth import login, logout, authenticate
+from django.contrib.auth.models import User
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
-from django.http import JsonResponse, HttpResponse, FileResponse
+from django.http import JsonResponse, HttpResponse, FileResponse, HttpResponseForbidden
 from django.views.decorators.http import require_POST
 from django.db.models import Q, Count
 from django.core.paginator import Paginator
+from django.core import signing
+from django.core.mail import send_mail
+from django.urls import reverse
+from django.utils import timezone
+from django.db import transaction
+from django.conf import settings
 
 from .models import Student, Room, Exam, SeatingAllocation
 from .forms import (
     AdminLoginForm, StudentForm, RoomForm, ExamForm,
-    CSVUploadForm, SeatingAllocationForm, StudentSearchForm
+    CSVUploadForm, SeatingAllocationForm, StudentSearchForm, StudentRegistrationForm
 )
 from .utils import (
     allocate_seats, save_allocations,
@@ -25,6 +33,31 @@ from .utils import (
 )
 
 
+def staff_required(view_func):
+    """Allow staff accounts only on administrative pages."""
+    @wraps(view_func)
+    def _wrapped(request, *args, **kwargs):
+        if not request.user.is_authenticated:
+            return redirect(settings.LOGIN_URL + '?next=' + request.path)
+        if not (request.user.is_staff or request.user.is_superuser):
+            return redirect('student_dashboard' if hasattr(request.user, 'student_profile') else 'student_login')
+        return view_func(request, *args, **kwargs)
+    return _wrapped
+
+
+def student_required(view_func):
+    """Allow only verified student accounts linked to a student record."""
+    @wraps(view_func)
+    def _wrapped(request, *args, **kwargs):
+        if not request.user.is_authenticated:
+            return redirect('student_login')
+        if request.user.is_staff or request.user.is_superuser:
+            return redirect('dashboard')
+        if not hasattr(request.user, 'student_profile'):
+            logout(request)
+            return redirect('student_login')
+        return view_func(request, *args, **kwargs)
+    return _wrapped
 # ════════════════════════════════════════════════
 # PUBLIC VIEWS
 # ════════════════════════════════════════════════
@@ -109,7 +142,7 @@ def ajax_search_seat(request):
 def admin_login(request):
     """Admin login view"""
     if request.user.is_authenticated:
-        return redirect('dashboard')
+        return redirect('dashboard' if request.user.is_staff or request.user.is_superuser else 'student_dashboard')
 
     if request.method == 'POST':
         form = AdminLoginForm(request, data=request.POST)
@@ -117,7 +150,7 @@ def admin_login(request):
             user = form.get_user()
             if user.is_staff or user.is_superuser:
                 login(request, user)
-                messages.success(request, f'Welcome back, {user.get_full_name() or user.username}! 👋')
+                messages.success(request, f'Welcome back, {user.get_full_name() or user.username}!')
                 return redirect('dashboard')
             else:
                 messages.error(request, 'Access denied. Admin privileges required.')
@@ -129,7 +162,7 @@ def admin_login(request):
     return render(request, 'exams/login.html', {'form': form})
 
 
-@login_required
+@staff_required
 @require_POST
 def admin_logout(request):
     """Admin logout view"""
@@ -490,15 +523,21 @@ def clear_seating(request, exam_id):
 # ADMIT CARD & REPORTS - Module 6, CO5
 # ════════════════════════════════════════════════
 
+@login_required
 def view_admit_card(request, allocation_id):
-    """Render printable web view of Admit Card (Module 6, CO5)"""
+    """Render a student's own printable admit card, or allow staff access."""
     allocation = get_object_or_404(SeatingAllocation, pk=allocation_id)
+    if not (request.user.is_staff or request.user.is_superuser) and getattr(request.user, 'student_profile', None) != allocation.student:
+        return HttpResponseForbidden('You are not allowed to view this admit card.')
     return render(request, 'exams/admit_card.html', {'allocation': allocation})
 
 
+@login_required
 def download_admit_card(request, allocation_id):
-    """Download admit card PDF for a student"""
+    """Download only the signed-in student's admit card, or allow staff access."""
     allocation = get_object_or_404(SeatingAllocation, pk=allocation_id)
+    if not (request.user.is_staff or request.user.is_superuser) and getattr(request.user, 'student_profile', None) != allocation.student:
+        return HttpResponseForbidden('You are not allowed to download this admit card.')
 
     buffer = generate_admit_card_pdf(allocation)
 
@@ -562,3 +601,109 @@ def download_csv_template(request):
     writer.writerow(['21B15CS002', 'Priya Singh', 'priya@college.edu', 'B.Tech CSE', '5', '9876543211'])
     writer.writerow(['21B15ECE001', 'Amit Kumar', 'amit@college.edu', 'B.Tech ECE', '3', '9876543212'])
     return response
+
+# ════════════════════════════════════════════════
+# STUDENT PORTAL - Self-service and verified accounts
+# ════════════════════════════════════════════════
+
+def student_register(request):
+    """Create a pending student account after matching the pre-enrolled roster."""
+    if request.user.is_authenticated:
+        return redirect('dashboard' if request.user.is_staff else 'student_dashboard')
+    if request.method == 'POST':
+        form = StudentRegistrationForm(request.POST)
+        if form.is_valid():
+            student = form.student_record
+            try:
+                with transaction.atomic():
+                    user = student.user
+                    if user is None:
+                        user = User(username=student.roll_number, email=student.email, first_name=student.name[:150], is_active=False)
+                    user.email = student.email
+                    user.first_name = student.name[:150]
+                    user.set_password(form.cleaned_data['password1'])
+                    user.is_active = False
+                    user.save()
+                    student.user = user
+                    student.save(update_fields=['user', 'updated_at'])
+                    token = signing.dumps({'student_id': student.pk, 'user_id': user.pk}, salt='exams.student.email-verification')
+                    verify_url = request.build_absolute_uri(reverse('student_verify_email', args=[token]))
+                    subject = 'Verify your JIIT Student Examination Portal account'
+                    message = (
+                        'Hello ' + student.name + ',\n\n'
+                        'We received a request to create your Student Examination Portal account.\n'
+                        'Verify your registered email address using the link below (valid for 24 hours):\n\n'
+                        + verify_url + '\n\n'
+                        + 'If you did not request this account, you can ignore this email.\n'
+                    )
+                send_mail(subject, message, settings.DEFAULT_FROM_EMAIL, [student.email], fail_silently=False)
+                return render(request, 'exams/student_registration_sent.html', {'email': student.email})
+            except Exception:
+                messages.error(request, 'We could not send the verification email. Please try again later or contact the portal administrator.')
+    else:
+        form = StudentRegistrationForm()
+    return render(request, 'exams/student_register.html', {'form': form})
+
+
+def student_verify_email(request, token):
+    """Verify a time-limited signed email token and activate the account."""
+    try:
+        payload = signing.loads(token, salt='exams.student.email-verification', max_age=60 * 60 * 24)
+        student = Student.objects.select_related('user').get(pk=payload['student_id'], user_id=payload['user_id'])
+    except (signing.BadSignature, signing.SignatureExpired, Student.DoesNotExist, KeyError, TypeError):
+        return render(request, 'exams/student_verification_result.html', {'verified': False, 'message': 'This verification link is invalid or has expired. Please register again to request a fresh link.'})
+    user = student.user
+    if user.is_active:
+        return render(request, 'exams/student_verification_result.html', {'verified': True, 'message': 'Your email address is already verified. You can sign in to your student portal.'})
+    user.is_active = True
+    user.save(update_fields=['is_active'])
+    login(request, user, backend='django.contrib.auth.backends.ModelBackend')
+    return render(request, 'exams/student_verification_result.html', {'verified': True, 'message': 'Your email has been verified. Your Student Examination Portal is ready.', 'continue_to_portal': True})
+
+
+def student_login(request):
+    """Authenticate verified student accounts only."""
+    if request.user.is_authenticated:
+        return redirect('dashboard' if request.user.is_staff else 'student_dashboard')
+    if request.method == 'POST':
+        form = AdminLoginForm(request, data=request.POST)
+        if form.is_valid():
+            user = form.get_user()
+            if user.is_staff or user.is_superuser:
+                messages.error(request, 'Please use the staff login page for administrator accounts.')
+            elif hasattr(user, 'student_profile'):
+                login(request, user)
+                return redirect('student_dashboard')
+            else:
+                messages.error(request, 'This account is not linked to a student record.')
+        else:
+            messages.error(request, 'Invalid credentials. If you just registered, verify your email first.')
+    else:
+        form = AdminLoginForm()
+    return render(request, 'exams/student_login.html', {'form': form})
+
+
+@student_required
+def student_dashboard(request):
+    """Show the signed-in student's schedule, seat allocations and admit cards."""
+    student = request.user.student_profile
+    today = timezone.localdate()
+    allocations = SeatingAllocation.objects.filter(student=student).select_related('exam', 'room').order_by('exam__exam_date', 'exam__start_time')
+    allocation_by_exam = {item.exam_id: item for item in allocations}
+    upcoming = Exam.objects.filter(exam_date__gte=today, status__in=['scheduled', 'ongoing']).order_by('exam_date', 'start_time')
+    upcoming_rows = [{'exam': exam, 'allocation': allocation_by_exam.get(exam.pk)} for exam in upcoming]
+    history = Exam.objects.filter(Q(exam_date__lt=today) | Q(status='completed')).order_by('-exam_date', '-start_time')[:10]
+    history_rows = [{'exam': exam, 'allocation': allocation_by_exam.get(exam.pk)} for exam in history]
+    return render(request, 'exams/student_dashboard.html', {
+        'student': student, 'upcoming_rows': upcoming_rows, 'history_rows': history_rows,
+        'upcoming_count': len(upcoming_rows), 'allocated_count': allocations.count(),
+        'admit_card_count': allocations.count(),
+    })
+
+
+@student_required
+@require_POST
+def student_logout(request):
+    logout(request)
+    messages.info(request, 'You have been signed out.')
+    return redirect('student_login')
