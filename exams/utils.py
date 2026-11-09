@@ -70,6 +70,20 @@ def allocate_seats(exam, rooms, students):
     ]
 
     from .models import Exam
+    overlapping_exams = Exam.objects.filter(
+        exam_date=exam.exam_date,
+        start_time__lt=exam.end_time,
+        end_time__gt=exam.start_time,
+    ).exclude(pk=exam.pk)
+    clashes = SeatingAllocation.objects.filter(
+        student__in=pending_students, exam__in=overlapping_exams
+    ).select_related('student', 'exam')
+    if clashes.exists():
+        clash = clashes.first()
+        raise ValueError(
+            f"{clash.student.name} ({clash.student.roll_number}) is already allocated "
+            f"to {clash.exam.subject} during an overlapping time slot."
+        )
     overlapping_exam_ids = Exam.objects.filter(
         exam_date=exam.exam_date,
         start_time__lt=exam.end_time,
