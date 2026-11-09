@@ -173,3 +173,21 @@ Set `DJANGO_SECRET_KEY` to a long random secret and set `DJANGO_DEBUG=False` plu
 Open `/student/portal/` (or use the Student Portal link on the home page), enter the university roll number and view that student's course/semester-specific exam schedule, seating allocation, admit-card links and examination history. No student registration, password or email verification is required.
 
 **Demo limitation:** a roll number is an identifier, not a secret. Anyone who knows a student's roll number may be able to look up the public portal details. Do not expose sensitive personal data on this page or use roll-number-only access for confidential records in a real deployment. Admit-card links are signed and expire after 15 minutes.
+
+### Standardize existing legacy student roll numbers
+
+Back up your local database before applying this operation. The command maps the existing semester to a batch (Sem 7/8 → 2023, Sem 5/6 → 2024, Sem 3/4 → 2025, Sem 1/2 → 2026) and updates each existing Student row in place, preserving its primary key and related seating allocations.
+
+Preview the exact changes first (no database writes):
+
+```bash
+python manage.py standardize_student_roll_numbers
+```
+
+After reviewing the proposed roll-number mapping, apply it:
+
+```bash
+python manage.py standardize_student_roll_numbers --apply
+```
+
+The generated demo format is `992Y0103NNNN`; the final four digits are based on the old roll number's numeric suffix where possible. This is a project demo convention, not a claim that the programme segment is an official institute-issued code. The command refuses to proceed if it encounters unsupported semesters or a target-roll collision.
