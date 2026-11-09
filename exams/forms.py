@@ -94,7 +94,7 @@ class CSVUploadForm(forms.Form):
 
 
 class SeatingAllocationForm(forms.Form):
-    """Form for creating seating allocation for an exam"""
+    """Allocate only students who meet the selected exam's course/semester criteria."""
     exam = forms.ModelChoiceField(
         queryset=Exam.objects.filter(status='scheduled'),
         widget=forms.Select(attrs={'class': 'form-select form-select-lg'}),
@@ -110,8 +110,8 @@ class SeatingAllocationForm(forms.Form):
     students = forms.ModelMultipleChoiceField(
         queryset=Student.objects.all(),
         widget=forms.CheckboxSelectMultiple(attrs={'class': 'student-checkbox'}),
-        label='Select Students',
-        help_text='Select students to allocate seats',
+        label='Select Eligible Students',
+        help_text='Students are filtered by the selected exam course and semester.',
     )
 
     def clean(self):
@@ -120,16 +120,25 @@ class SeatingAllocationForm(forms.Form):
         students = cleaned_data.get('students')
         exam = cleaned_data.get('exam')
         if exam and students:
-            if exam.target_course and students.exclude(course=exam.target_course).exists():
-                raise forms.ValidationError('Selected students must belong to the examination course.')
-            if exam.target_semester and students.exclude(semester=exam.target_semester).exists():
-                raise forms.ValidationError('Selected students must belong to the examination semester.')
-        if rooms and students:
-            total_capacity = sum(r.capacity for r in rooms)
-            total_students = students.count()
-            if total_students > total_capacity:
+            eligible = students
+            if exam.target_course:
+                eligible = eligible.filter(course=exam.target_course)
+            if exam.target_semester:
+                eligible = eligible.filter(semester=exam.target_semester)
+            if eligible.count() != students.count():
                 raise forms.ValidationError(
-                    f'Insufficient capacity! {total_students} students but only {total_capacity} seats available.'
+                    "Some selected students do not meet this exam's course/semester criteria. "
+                    "Only eligible students can be allocated."
+                )
+        if rooms and students and exam:
+            from .utils import room_capacity_available
+            available = room_capacity_available(exam, rooms)
+            already_allocated = SeatingAllocation.objects.filter(exam=exam).values('student_id')
+            pending_count = students.exclude(pk__in=already_allocated).count()
+            if pending_count > available:
+                raise forms.ValidationError(
+                    f"Insufficient room capacity for this time slot: {pending_count} students "
+                    f"need seats, but only {available} seats are free across the selected rooms."
                 )
         return cleaned_data
 
