@@ -23,11 +23,11 @@
       </div>
     </div>
     <div style="display:flex;align-items:center;gap:12px">
-      <a href="{% url 'student_login' %}" class="btn-ghost" style="padding:8px 18px">
-        <i class="bi bi-person"></i> Student Sign In
+      <a href="{% url 'student_portal' %}" class="btn-ghost" style="padding:8px 18px">
+        <i class="bi bi-person"></i> Student Portal
       </a>
-      <a href="{% url 'student_register' %}" class="btn-ghost" style="padding:8px 18px">
-        <i class="bi bi-person-plus"></i> Register
+      <a href="{% url 'student_portal' %}" class="btn-ghost" style="padding:8px 18px">
+        <i class="bi bi-person-plus"></i> Student Portal
       </a>
       <a href="{% url 'admin_login' %}" class="btn-primary-glow" style="padding:8px 20px">
         <i class="bi bi-shield-lock-fill"></i> Staff / Admin Login
@@ -54,7 +54,7 @@
     </p>
 
     <div style="display:flex;gap:14px;justify-content:center;flex-wrap:wrap;margin-bottom:50px">
-      <a href="{% url 'student_login' %}" class="btn-primary-glow" style="padding:12px 28px;font-size:0.95rem;background:#f59e0b;border-color:#d97706;color:#0f172a !important;font-weight:700">
+      <a href="{% url 'student_portal' %}" class="btn-primary-glow" style="padding:12px 28px;font-size:0.95rem;background:#f59e0b;border-color:#d97706;color:#0f172a !important;font-weight:700">
         <i class="bi bi-search"></i> Open Student Portal
       </a>
       <a href="{% url 'admin_login' %}" class="btn-ghost" style="padding:12px 28px;font-size:0.95rem;background:rgba(255,255,255,0.1);border-color:rgba(255,255,255,0.25);color:#ffffff !important">
@@ -139,7 +139,7 @@
   <div style="max-width:900px;margin:0 auto">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
       <h3 style="font-size:1.25rem;font-weight:700;color:#0f172a;margin:0">Active Examinations</h3>
-      <a href="{% url 'student_login' %}" style="font-size:0.85rem;color:#1e3a8a;text-decoration:none;font-weight:600">Check Seat Allocation →</a>
+      <a href="{% url 'student_portal' %}" style="font-size:0.85rem;color:#1e3a8a;text-decoration:none;font-weight:600">Check Seat Allocation →</a>
     </div>
     <div style="border:1px solid #e2e8f0;border-radius:8px;overflow:hidden">
       <table class="ems-table" style="margin:0">
@@ -179,7 +179,7 @@
     <div style="color:#ffffff;font-weight:700;font-size:0.95rem;margin-bottom:6px">EXAMINATION MANAGEMENT SYSTEM</div>
     <div>Department of Computer Science & Engineering · Full Stack Development Lab (24B15CS314)</div>
     <div style="margin-top:16px;display:flex;justify-content:center;gap:20px;font-size:0.82rem">
-      <a href="{% url 'student_login' %}" style="color:#cbd5e1;text-decoration:none">Student Portal</a>
+      <a href="{% url 'student_portal' %}" style="color:#cbd5e1;text-decoration:none">Student Portal</a>
       <span>·</span>
       <a href="{% url 'admin_login' %}" style="color:#cbd5e1;text-decoration:none">Staff Administration Login</a>
       <span>·</span>
