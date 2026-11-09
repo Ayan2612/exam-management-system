@@ -156,12 +156,12 @@ function initAjaxSearch() {
         </div>
         
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0">
-          <div class="result-row"><span class="result-label">📚 Exam</span><span class="result-value">${a.exam}</span></div>
-          <div class="result-row"><span class="result-label">📅 Date</span><span class="result-value">${a.exam_date}</span></div>
-          <div class="result-row"><span class="result-label">⏰ Time</span><span class="result-value">${a.exam_time}</span></div>
-          <div class="result-row"><span class="result-label">🏛️ Building</span><span class="result-value">${a.building}</span></div>
-          <div class="result-row"><span class="result-label">🚪 Room</span><span class="result-value" style="color: #1e3a8a; font-weight: 700">${a.room_number}</span></div>
-          <div class="result-row"><span class="result-label">💺 Seat</span><span class="result-value" style="color: #15803d; font-weight: 800; font-size: 1.3rem">Seat #${a.seat_number}</span></div>
+          <div class="result-row"><span class="result-label">Exam</span><span class="result-value">${a.exam}</span></div>
+          <div class="result-row"><span class="result-label">Date</span><span class="result-value">${a.exam_date}</span></div>
+          <div class="result-row"><span class="result-label">Time</span><span class="result-value">${a.exam_time}</span></div>
+          <div class="result-row"><span class="result-label">Building</span><span class="result-value">${a.building}</span></div>
+          <div class="result-row"><span class="result-label">Room</span><span class="result-value" style="color: #1e3a8a; font-weight: 700">${a.room_number}</span></div>
+          <div class="result-row"><span class="result-label">Seat</span><span class="result-value" style="color: #15803d; font-weight: 800; font-size: 1.3rem">Seat #${a.seat_number}</span></div>
         </div>
       </div>`).join('');
 
