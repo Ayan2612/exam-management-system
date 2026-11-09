@@ -32,7 +32,7 @@ def make_roll_number(student, sequence):
     batch = batch_for_semester(student.semester)
     # The sample JIIT-style pattern supplied for this project uses 0103
     # as the programme segment. Keep the generated structure consistent.
-    return f"992{str(batch)[-2:]}0103{sequence:04d}"
+    return f"99{str(batch)[-2:]}0103{sequence:04d}"
 
 
 class Command(BaseCommand):
