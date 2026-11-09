@@ -97,7 +97,7 @@ class CSVUploadForm(forms.Form):
         help_text='All six columns are required: roll_number, name, email, course, semester, phone',
         widget=forms.FileInput(attrs={
             'class': 'form-control',
-            'accept': '.csv,.xlsx,.xls',
+            'accept': '.csv,.xlsx',
         })
     )
 
