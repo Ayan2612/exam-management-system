@@ -37,6 +37,7 @@
             style="accent-color:var(--primary);width:18px;height:18px;cursor:pointer;margin-top:2px">
           <div>
             <div style="color:var(--text-primary);font-weight:600;font-size:0.9rem">{{ room_choice.choice_label }}</div>
+            <small class="room-availability" style="display:block;color:var(--text-muted);font-size:0.78rem;margin-top:4px">Select an exam to see availability</small>
           </div>
         </label>
         {% empty %}
@@ -97,7 +98,7 @@
         <div style="font-size:2rem;font-weight:800;color:var(--accent)" id="studentDisplay">0</div>
       </div>
       <div style="text-align:center">
-        <div style="font-size:0.75rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--text-muted);margin-bottom:4px">Room Capacity</div>
+        <div style="font-size:0.75rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--text-muted);margin-bottom:4px">Currently Available (Selected Rooms)</div>
         <div style="font-size:2rem;font-weight:800;color:var(--accent-green)" id="capacityDisplay">0</div>
         <div class="capacity-bar"><div class="capacity-fill" id="capacityBar" style="width:0%"></div></div>
       </div>
@@ -115,40 +116,67 @@
 
 {% block extra_js %}
 <script>
-
-  // Show only students matching the selected exam's course and semester.
   const criteria = JSON.parse(document.getElementById('examCriteria')?.textContent || '{}');
   const examSelect = document.getElementById('id_exam');
-  const studentLabels = [...document.querySelectorAll('.student-checkbox')].map(input => input.closest('label'));
-  function filterEligibleStudents() {
-    const selected = criteria[examSelect?.value];
-    let visible = 0;
-    studentLabels.forEach(label => {
-      const input = label.querySelector('.student-checkbox');
-      const eligible = !!selected
-        && (!selected.course || input.dataset.course === selected.course)
-        && (selected.semester === null || selected.semester === undefined
-            || Number(input.dataset.semester) === Number(selected.semester));
+  const studentInputs = [...document.querySelectorAll('.student-checkbox')];
+  const roomInputs = [...document.querySelectorAll('.room-checkbox')];
+
+  function updateAllocationView() {
+    const selectedExam = criteria[examSelect?.value];
+    let eligibleCount = 0;
+    studentInputs.forEach(input => {
+      const label = input.closest('label');
+      const eligible = !!selectedExam
+        && (!selectedExam.course || input.dataset.course === selectedExam.course)
+        && (selectedExam.semester == null || Number(input.dataset.semester) === Number(selectedExam.semester));
       label.hidden = !eligible;
       if (!eligible) input.checked = false;
-      if (eligible) visible++;
+      if (eligible) eligibleCount++;
     });
-    const count = document.getElementById('eligibleStudentCount');
-    if (count) count.textContent = selected ? visible + ' eligible students' : 'Select an exam first';
-  }
-  examSelect?.addEventListener('change', filterEligibleStudents);
-  filterEligibleStudents();
 
-  // Update room capacity data from actual room capacity values
-  document.querySelectorAll('.room-checkbox').forEach(cb => {
-    // Parse capacity from the label text
-    const label = cb.closest('label');
-    if (label) {
-      const text = label.querySelector('div div')?.textContent || '';
-      const match = text.match(/Cap:\s*(\d+)/i);
-      if (match) cb.dataset.capacity = match[1];
-    }
+    const eligibleCountEl = document.getElementById('eligibleStudentCount');
+    if (eligibleCountEl) eligibleCountEl.textContent = selectedExam ? eligibleCount + ' eligible students' : 'Select an exam first';
+
+    let availableTotal = 0;
+    roomInputs.forEach(input => {
+      const roomInfo = selectedExam?.rooms?.[input.value];
+      const available = roomInfo ? Number(roomInfo.available) : 0;
+      const capacity = roomInfo ? Number(roomInfo.capacity) : Number(input.dataset.capacity || 0);
+      const availabilityLabel = input.closest('label')?.querySelector('.room-availability');
+      if (availabilityLabel) {
+        availabilityLabel.textContent = selectedExam
+          ? 'Currently available: ' + available + ' / ' + capacity
+          : 'Select an exam to see availability';
+      }
+      if (selectedExam && input.checked) availableTotal += available;
+    });
+
+    const selectedCount = studentInputs.filter(input => input.checked && !input.closest('label').hidden).length;
+    document.getElementById('studentDisplay').textContent = selectedCount;
+    document.getElementById('capacityDisplay').textContent = availableTotal;
+    const percent = availableTotal ? Math.min(selectedCount / availableTotal * 100, 100) : (selectedCount ? 100 : 0);
+    document.getElementById('capacityBar').style.width = percent + '%';
+    const alert = document.getElementById('capacityAlert');
+    alert.textContent = selectedExam && selectedCount > availableTotal
+      ? 'Not enough seats available in the selected rooms for this date and time slot.'
+      : '';
+    alert.style.color = '#dc2626';
+  }
+
+  examSelect?.addEventListener('change', updateAllocationView);
+  roomInputs.forEach(input => input.addEventListener('change', updateAllocationView));
+  studentInputs.forEach(input => input.addEventListener('change', updateAllocationView));
+
+  document.getElementById('selectAllStudents')?.addEventListener('click', () => {
+    studentInputs.forEach(input => { if (!input.closest('label').hidden) input.checked = true; });
+    updateAllocationView();
   });
+  document.getElementById('deselectAllStudents')?.addEventListener('click', () => {
+    studentInputs.forEach(input => { input.checked = false; });
+    updateAllocationView();
+  });
+
+  updateAllocationView();
 </script>
 {% endblock %}
 
