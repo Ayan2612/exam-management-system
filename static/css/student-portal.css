@@ -139,3 +139,46 @@
  .student-dashboard-wrap { width:100%; padding:0; }
  .student-table-wrap,.student-profile-strip,.student-summary { break-inside:avoid; }
 }
+
+
+/* Unified visual language: match the home page and staff dashboard */
+:root {
+  --jiit-navy:#0f172a;
+  --jiit-blue:#1e3a8a;
+  --jiit-ink:#0f172a;
+  --jiit-muted:#64748b;
+  --jiit-line:#e2e8f0;
+  --jiit-paper:#ffffff;
+  --jiit-page:#f8fafc;
+  --jiit-gold:#f59e0b;
+  --jiit-teal:#0f766e;
+}
+.student-dashboard-page { background:var(--jiit-page); font-family:'Inter',system-ui,sans-serif; }
+.student-topbar { min-height:76px; background:#fff; border-bottom:2px solid var(--jiit-blue); box-shadow:0 1px 3px rgba(15,23,42,.05); }
+.student-brand strong { color:var(--jiit-navy); }
+.student-brand small { color:var(--jiit-muted); }
+.student-logout { border-radius:6px; color:var(--jiit-blue); border-color:#cbd5e1; text-decoration:none; }
+.student-logout:hover { background:#eff6ff; border-color:#93c5fd; color:var(--jiit-navy); }
+.student-kicker { color:var(--jiit-blue); }
+.student-lookup-hero { position:relative; overflow:hidden; border:1px solid var(--jiit-line); border-top:4px solid var(--jiit-gold); border-radius:10px; box-shadow:0 8px 24px rgba(15,23,42,.06); }
+.student-lookup-hero::before { content:""; position:absolute; top:0; right:0; width:210px; height:210px; background:radial-gradient(circle,rgba(30,58,138,.07),transparent 70%); pointer-events:none; }
+.student-lookup-hero h1 { color:var(--jiit-navy); }
+.student-lookup-input button { border-color:var(--jiit-blue); background:var(--jiit-blue); border-radius:6px; }
+.student-lookup-input button:hover { background:var(--jiit-navy); }
+.student-lookup-input .form-control { border-radius:6px; }
+.student-portal-features>div { border-radius:8px; box-shadow:0 1px 3px rgba(15,23,42,.04); }
+.student-portal-features>div:nth-child(2) i { color:var(--jiit-teal); }
+.student-portal-features>div:nth-child(3) i { color:#b45309; }
+.student-welcome { border-bottom-color:var(--jiit-line); }
+.student-welcome h1 { color:var(--jiit-navy); }
+.student-summary { border-radius:8px; overflow:hidden; box-shadow:0 1px 3px rgba(15,23,42,.04); }
+.student-summary>div:nth-child(2) strong { color:var(--jiit-teal); }
+.student-summary>div:nth-child(3) strong { color:#b45309; }
+.student-table-wrap,.student-empty,.student-history-list,.student-profile-strip,.student-notice { border-radius:8px; overflow:hidden; }
+.student-table th { background:#f1f5f9; color:#334155; }
+.student-text-link { color:var(--jiit-blue); }
+.student-notice { border-left:4px solid var(--jiit-gold); }
+.student-profile-strip { grid-template-columns:repeat(4,minmax(0,1fr)); }
+@media(max-width:760px) {
+  .student-profile-strip { grid-template-columns:1fr 1fr; }
+}
