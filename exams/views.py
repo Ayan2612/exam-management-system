@@ -657,10 +657,10 @@ def student_dashboard(request):
 def _jiit_semester_from_roll_number(roll_number, fallback_semester, course='B.Tech CSE'):
     """Infer the current B.Tech semester from JIIT roll numbers beginning with 992YY."""
     roll_number = (roll_number or '').strip()
-    if not (roll_number.startswith('992') and len(roll_number) >= 9 and roll_number[3:5].isdigit()):
+    if not (roll_number.startswith('992') and len(roll_number) >= 9 and roll_number[2:4].isdigit()):
         return fallback_semester, None
 
-    admission_year = 2000 + int(roll_number[3:5])
+    admission_year = 2000 + int(roll_number[2:4])
     today = timezone.localdate()
     # JIIT odd semester runs roughly Aug-Jan; even semester runs Feb-Jul.
     semester = 2 * (today.year - admission_year) + (1 if today.month >= 8 or today.month <= 2 else 2)
