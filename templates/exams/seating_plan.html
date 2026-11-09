@@ -65,8 +65,8 @@
           <label style="display:flex;align-items:center;gap:10px;padding:10px;border-radius:8px;cursor:pointer;transition:background 0.15s;margin-bottom:2px" onmouseover="this.style.background='rgba(99,102,241,0.1)'" onmouseout="this.style.background='transparent'">
             <input type="checkbox" name="students" value="{{ student_choice.data.value }}"
               class="student-checkbox"
-              data-course="{{ student_choice.data.instance.course|escape }}"
-              data-semester="{{ student_choice.data.instance.semester }}"
+              data-course="{{ student_choice.data.value.instance.course|escape }}"
+              data-semester="{{ student_choice.data.value.instance.semester }}"
               {% if student_choice.data.selected %}checked{% endif %}
               style="accent-color:var(--primary);width:16px;height:16px;cursor:pointer;flex-shrink:0">
             <span style="color:var(--text-secondary);font-size:0.875rem">{{ student_choice.choice_label }}</span>
