@@ -13,6 +13,7 @@ urlpatterns = [
     path('student/verify/<str:token>/', views.student_verify_email, name='student_verify_email'),
     path('student/login/', views.student_login, name='student_login'),
     path('student/portal/', views.student_portal, name='student_portal'),
+    path('student-portal/', views.student_portal, name='student_portal_short'),
     path('student/dashboard/', views.student_dashboard, name='student_dashboard'),
     path('student/logout/', views.student_logout, name='student_logout'),
     path('ajax/search-seat/', views.ajax_search_seat, name='ajax_search_seat'),
