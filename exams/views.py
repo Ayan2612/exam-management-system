@@ -690,9 +690,9 @@ def student_dashboard(request):
     today = timezone.localdate()
     allocations = SeatingAllocation.objects.filter(student=student).select_related('exam', 'room').order_by('exam__exam_date', 'exam__start_time')
     allocation_by_exam = {item.exam_id: item for item in allocations}
-    upcoming = Exam.objects.filter(exam_date__gte=today, status__in=['scheduled', 'ongoing']).order_by('exam_date', 'start_time')
+    upcoming = Exam.objects.filter(exam_date__gte=today, status__in=['scheduled', 'ongoing']).filter(Q(target_course='') | Q(target_course=student.course)).filter(Q(target_semester__isnull=True) | Q(target_semester=student.semester)).order_by('exam_date', 'start_time')
     upcoming_rows = [{'exam': exam, 'allocation': allocation_by_exam.get(exam.pk)} for exam in upcoming]
-    history = Exam.objects.filter(Q(exam_date__lt=today) | Q(status='completed')).order_by('-exam_date', '-start_time')[:10]
+    history = Exam.objects.filter(Q(exam_date__lt=today) | Q(status='completed')).filter(Q(target_course='') | Q(target_course=student.course)).filter(Q(target_semester__isnull=True) | Q(target_semester=student.semester)).order_by('-exam_date', '-start_time')[:10]
     history_rows = [{'exam': exam, 'allocation': allocation_by_exam.get(exam.pk)} for exam in history]
     return render(request, 'exams/student_dashboard.html', {
         'student': student, 'upcoming_rows': upcoming_rows, 'history_rows': history_rows,
