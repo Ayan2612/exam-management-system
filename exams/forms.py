@@ -221,3 +221,17 @@ class StudentRegistrationForm(forms.Form):
                 except ValidationError as exc:
                     self.add_error('password1', exc)
         return cleaned
+
+
+class StudentPortalLookupForm(forms.Form):
+    """Simple roll-number lookup for the public student portal."""
+    roll_number = forms.CharField(
+        max_length=20,
+        label='University roll number',
+        widget=forms.TextInput(attrs={
+            'class': 'form-control form-control-lg',
+            'placeholder': 'e.g. 24B15CS001',
+            'autocomplete': 'off',
+            'autofocus': True,
+        }),
+    )
