@@ -170,7 +170,7 @@ Administrators choose an **Applicable Course** and **Applicable Semester** while
 
 For local development, if SMTP settings are not supplied, Django prints verification emails (including the verification URL) in the terminal running `python manage.py runserver`.
 
-For actual email delivery, set these environment variables before starting Django:
+For actual email delivery, copy `.env.example` to `.env`, fill in the SMTP values, and restart Django. The settings module loads `.env` automatically. Keep `.env` private; it is ignored by Git. You can also set these environment variables directly before starting Django:
 
 - `EMAIL_HOST` (for Gmail, `smtp.gmail.com`)
 - `EMAIL_PORT` (usually `587`)
