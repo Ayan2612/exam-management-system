@@ -11,7 +11,7 @@ Developed in alignment with the **Full Stack Development Lab (Course Code: 24B15
 ### 1. 🛡️ Staff & Administration Portal
 - **Secure Authentication**: Protected dashboard accessible only by authorized staff and examination controllers.
 - **Student Data Management**: Complete CRUD operations, multi-parameter search (Roll number, Name, Course, Semester).
-- **Bulk CSV / Excel Ingestion**: Upload student rosters using `.csv`, `.xlsx`, or `.xls` with duplicate roll number validation.
+- **Bulk CSV / Excel Ingestion**: Upload student rosters using `.csv`, `.xlsx`, or `.xls`; use 12-digit JIIT-style roll numbers (9923/9924/9925/9926 for 2023/2024/2025/2026 batches).
 - **Room & Capacity Management**: Add and configure exam rooms, building blocks, floors, and strict capacity limits.
 - **Exam Scheduling**: Create and schedule examinations with subject codes, dates, and session timings.
 
@@ -158,7 +158,7 @@ exam_management/
 
 Open `/student/portal/` from the home page and enter the student's university roll number. The portal displays the matching student's profile basics, course/semester-specific upcoming examination schedule, seating allocation, admit-card links and examination history.
 
-No student registration, password or email verification is required. Administrators must first add/import the student's record and keep their roll number accurate.
+No student registration, password or email verification is required. Administrators must first add/import the student's record and keep their roll number accurate. Use the 12-digit JIIT-style format: `9923…` (2023), `9924…` (2024), `9925…` (2025), or `9926…` (2026).
 
 Admit-card links are signed and expire after 15 minutes. The roll-number-only lookup is intended for a classroom/demo project: a roll number is an identifier, not a secret, so anyone who knows a student's roll number may be able to view the portal details. Do not expose sensitive personal information or use this approach for confidential student records in a real deployment.
 
