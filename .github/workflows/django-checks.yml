@@ -1,9 +1,6 @@
 name: Django checks
 
 on:
-  push:
-    branches:
-      - preview/exam-management-v2
   pull_request:
     branches:
       - main
