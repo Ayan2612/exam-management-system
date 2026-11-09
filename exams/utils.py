@@ -113,12 +113,47 @@ def save_allocations(allocations):
 # CSV / EXCEL IMPORT
 # ─────────────────────────────────────────────
 
+def _upsert_imported_student(roll, name, email, course, semester, phone):
+    """Update an existing student by roll number or email, preserving related records."""
+    from .models import Student
+    from django.utils import timezone
+
+    # Derive the current semester from the JIIT-style admission-year prefix.
+    if roll.startswith('992') and len(roll) >= 5 and roll[3:5].isdigit():
+        admission_year = 2000 + int(roll[3:5])
+        today = timezone.localdate()
+        semester = 2 * (today.year - admission_year) + (
+            1 if today.month >= 8 or today.month <= 2 else 2
+        )
+        semester = min(max(semester, 1), 6 if course == 'BCA' else 8)
+
+    defaults = {
+        'roll_number': roll,
+        'name': name,
+        'email': email,
+        'course': course,
+        'semester': semester,
+        'phone': phone or None,
+    }
+    student = Student.objects.filter(roll_number__iexact=roll).first()
+    if student is None:
+        # Email is the stable matching key when an existing student's roll number changes.
+        student = Student.objects.filter(email__iexact=email).first()
+    if student is not None:
+        for field, value in defaults.items():
+            setattr(student, field, value)
+        student.save()
+        return student, False
+    return Student.objects.create(**defaults), True
+
+
 def import_students_from_csv(file):
     """
     Import students from a CSV file.
+    Existing records are matched by roll number, then email, so changing a
+    roll number does not orphan seating allocations or other foreign keys.
     Returns: (success_count, errors_list)
     """
-    from .models import Student
     import csv, io
 
     success_count = 0
@@ -145,15 +180,8 @@ def import_students_from_csv(file):
                     errors.append(f"Row {row_num}: roll_number, name, and email are required.")
                     continue
 
-                student, created = Student.objects.update_or_create(
-                    roll_number=roll,
-                    defaults={
-                        'name': name,
-                        'email': email,
-                        'course': course,
-                        'semester': semester,
-                        'phone': phone or None,
-                    }
+                student, created = _upsert_imported_student(
+                    roll, name, email, course, semester, phone
                 )
                 success_count += 1
 
@@ -203,15 +231,8 @@ def import_students_from_excel(file):
                     errors.append(f"Row {row_num}: Empty required field.")
                     continue
 
-                Student.objects.update_or_create(
-                    roll_number=roll,
-                    defaults={
-                        'name': name,
-                        'email': email,
-                        'course': course or 'B.Tech CSE',
-                        'semester': semester,
-                        'phone': phone or None,
-                    }
+                _upsert_imported_student(
+                    roll, name, email, course or 'B.Tech CSE', semester, phone
                 )
                 success_count += 1
 
