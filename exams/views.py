@@ -96,7 +96,7 @@ def ajax_search_seat(request):
 
         if not roll_number:
             return JsonResponse({'found': False, 'error': 'Please enter a roll number.'})
-        if not (request.user.is_staff or request.user.is_superuser) and getattr(request.user, 'student_profile', None) is not None and request.user.student_profile.roll_number.lower() != roll_number.lower():
+        if not (request.user.is_staff or request.user.is_superuser) and (not hasattr(request.user, 'student_profile') or request.user.student_profile.roll_number.lower() != roll_number.lower()):
             return JsonResponse({'found': False, 'error': 'You can only look up your own examination details.'}, status=403)
 
         try:
