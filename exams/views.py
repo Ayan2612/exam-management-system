@@ -483,9 +483,14 @@ def seating_plan(request):
         {'id': r.id, 'room_number': r.room_number, 'building': r.building, 'capacity': r.capacity}
         for r in Room.objects.filter(is_active=True)
     ]
+    exam_criteria = {
+        str(item.pk): {'course': item.target_course, 'semester': item.target_semester}
+        for item in Exam.objects.filter(status='scheduled')
+    }
     return render(request, 'exams/seating_plan.html', {
         'form': form,
         'rooms_data': json.dumps(rooms_data),
+        'exam_criteria': json.dumps(exam_criteria),
         'total_students': Student.objects.count(),
     })
 
