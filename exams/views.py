@@ -613,9 +613,10 @@ def download_csv_template(request):
     response['Content-Disposition'] = 'attachment; filename="student_import_template.csv"'
     writer = csv.writer(response)
     writer.writerow(['roll_number', 'name', 'email', 'course', 'semester', 'phone'])
-    writer.writerow(['992401030018', 'Rahul Sharma', 'rahul@college.edu', 'B.Tech CSE', '5', '9876543210'])
-    writer.writerow(['992401030019', 'Priya Singh', 'priya@college.edu', 'B.Tech CSE', '5', '9876543211'])
+    writer.writerow(['992301030018', 'Rahul Sharma', 'rahul@college.edu', 'B.Tech CSE', '7', '9876543210'])
+    writer.writerow(['992401030018', 'Priya Singh', 'priya@college.edu', 'B.Tech CSE', '5', '9876543211'])
     writer.writerow(['992501020001', 'Amit Kumar', 'amit@college.edu', 'B.Tech ECE', '3', '9876543212'])
+    writer.writerow(['992601020001', 'Neha Verma', 'neha@college.edu', 'BCA', '1', '9876543213'])
     return response
 
 # ════════════════════════════════════════════════
