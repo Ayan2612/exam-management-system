@@ -7,11 +7,11 @@ from .models import Exam, Student
 class StudentPortalTests(TestCase):
     def setUp(self):
         self.student = Student.objects.create(
-            roll_number='24B15CS001',
+            roll_number='992401030018',
             name='Test Student',
             email='student@example.com',
             course='B.Tech CSE',
-            semester=4,
+            semester=1,
         )
 
     def test_student_portal_opens_without_admin_or_student_login(self):
@@ -50,23 +50,47 @@ class StudentPortalTests(TestCase):
 
     def test_exam_list_is_filtered_by_course_and_semester(self):
         Exam.objects.create(
-            subject='CSE Semester Four',
+            subject='CSE Semester Five',
             exam_date='2099-01-10',
             start_time='09:00',
             end_time='12:00',
             target_course='B.Tech CSE',
-            target_semester=4,
+            target_semester=5,
         )
         Exam.objects.create(
-            subject='ECE Semester Four',
+            subject='ECE Semester Five',
             exam_date='2099-01-11',
             start_time='09:00',
             end_time='12:00',
             target_course='B.Tech ECE',
-            target_semester=4,
+            target_semester=5,
         )
         response = self.client.post(reverse('student_portal'), {
             'roll_number': self.student.roll_number,
         })
-        self.assertContains(response, 'CSE Semester Four')
-        self.assertNotContains(response, 'ECE Semester Four')
+        self.assertContains(response, 'CSE Semester Five')
+        self.assertNotContains(response, 'ECE Semester Five')
+
+
+class JIITRollNumberSemesterTests(TestCase):
+    def test_2024_batch_maps_to_semester_five_in_november_2026(self):
+        from unittest.mock import patch
+        from datetime import date
+        from django.utils import timezone
+        from .views import _jiit_semester_from_roll_number
+        with patch('exams.views.timezone.localdate', return_value=date(2026, 11, 9)):
+            self.assertEqual(_jiit_semester_from_roll_number('992401030018', 1), (5, 2024))
+
+    def test_2025_batch_maps_to_semester_three_in_november_2026(self):
+        from unittest.mock import patch
+        from datetime import date
+        from .views import _jiit_semester_from_roll_number
+        with patch('exams.views.timezone.localdate', return_value=date(2026, 11, 9)):
+            self.assertEqual(_jiit_semester_from_roll_number('992501030018', 1), (3, 2025))
+
+    def test_2026_batch_maps_to_semester_one_in_november_2026(self):
+        from unittest.mock import patch
+        from datetime import date
+        from .views import _jiit_semester_from_roll_number
+        with patch('exams.views.timezone.localdate', return_value=date(2026, 11, 9)):
+            self.assertEqual(_jiit_semester_from_roll_number('992601030018', 1), (1, 2026))
