@@ -37,26 +37,30 @@
     </form>
   </div>
 
-  <div class="glass-card" style="padding:24px">
-    <h6 style="color:var(--text-primary);font-weight:700;margin-bottom:16px"><i class="bi bi-file-earmark-text me-1"></i> Required File Format</h6>
-    <div style="overflow-x:auto;border-radius:10px;overflow:hidden">
+  <div class="glass-card" style="padding:28px;border:1px solid var(--border-color, #dbe3ef)">
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:8px">
+      <h5 style="color:var(--text-primary);font-weight:750;margin:0"><i class="bi bi-file-earmark-spreadsheet me-2" style="color:var(--primary-light)"></i>Required File Format</h5>
+      <span class="badge-pill badge-danger">All 6 columns mandatory</span>
+    </div>
+    <p style="color:var(--text-muted);font-size:0.9rem;margin:0 0 18px">Your CSV or Excel file must contain these exact column headers. No field can be left blank.</p>
+    <div style="overflow-x:auto;border:1px solid var(--border-color, #dbe3ef);border-radius:12px">
       <table class="ems-table">
         <thead>
-          <tr><th>Column</th><th>Required</th><th>Example</th></tr>
+          <tr><th style="padding:14px 18px">COLUMN NAME</th><th style="padding:14px 18px">STATUS</th><th style="padding:14px 18px">EXAMPLE VALUE</th></tr>
         </thead>
         <tbody>
           <tr><td><code style="color:var(--primary-light)">roll_number</code></td><td><span class="badge-pill badge-danger">Required</span></td><td style="color:var(--text-muted)">992401030018</td></tr>
           <tr><td><code style="color:var(--primary-light)">name</code></td><td><span class="badge-pill badge-danger">Required</span></td><td style="color:var(--text-muted)">Rahul Sharma</td></tr>
           <tr><td><code style="color:var(--primary-light)">email</code></td><td><span class="badge-pill badge-danger">Required</span></td><td style="color:var(--text-muted)">rahul@college.edu</td></tr>
-          <tr><td><code style="color:var(--primary-light)">course</code></td><td><span class="badge-pill badge-warning">Optional</span></td><td style="color:var(--text-muted)">B.Tech CSE</td></tr>
+          <tr><td><code style="color:var(--primary-light)">course</code></td><td><span class="badge-pill badge-danger">Required</span></td><td style="color:var(--text-muted)">B.Tech CSE</td></tr>
           <tr><td><code style="color:var(--primary-light)">semester</code></td><td><span class="badge-pill badge-warning">Optional</span></td><td style="color:var(--text-muted)">5</td></tr>
           <tr><td><code style="color:var(--primary-light)">phone</code></td><td><span class="badge-pill badge-warning">Optional</span></td><td style="color:var(--text-muted)">9876543210</td></tr>
         </tbody>
       </table>
     </div>
-    <div class="alert-ems alert-info mt-3">
-      <i class="bi bi-lightbulb"></i>
-      <span>Use the 12-digit JIIT-style format: 9923… for 2023, 9924… for 2024, 9925… for 2025 and 9926… for 2026 batches. Keep roll numbers unique. Existing students are updated when their exact roll number matches.</span>
+    <div class="alert-ems alert-info mt-3" style="padding:16px 18px;border-radius:12px;line-height:1.65">
+      <i class="bi bi-info-circle-fill"></i>
+      <span><strong>Important:</strong> Use the 12-digit JIIT-style roll number (9923… for 2023, 9924… for 2024, 9925… for 2025, 9926… for 2026). Keep roll numbers unique. Every row must include course, semester and phone as well. Existing students are updated when their exact roll number matches.</span>
     </div>
   </div>
 </div>
