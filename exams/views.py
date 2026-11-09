@@ -5,6 +5,7 @@ Demonstrates Django MVT - Modules 2-6, CO1-CO5
 import json
 from functools import wraps
 from django.shortcuts import render, redirect, get_object_or_404
+from django.core.exceptions import PermissionDenied
 from django.contrib.auth import login, logout, authenticate
 from django.contrib.auth.models import User
 from django.contrib.auth.decorators import login_required
@@ -701,18 +702,12 @@ def student_portal(request):
             allocation_by_exam = {item.exam_id: item for item in allocations}
             upcoming = Exam.objects.filter(exam_date__gte=today, status__in=['scheduled', 'ongoing']).filter(Q(target_course='') | Q(target_course=student.course)).filter(Q(target_semester__isnull=True) | Q(target_semester=student.semester)).order_by('exam_date', 'start_time')
             history = Exam.objects.filter(Q(exam_date__lt=today) | Q(status='completed')).filter(Q(target_course='') | Q(target_course=student.course)).filter(Q(target_semester__isnull=True) | Q(target_semester=student.semester)).order_by('-exam_date', '-start_time')[:10]
-            upcoming_rows = [{'exam': exam, 'allocation': allocation_by_exam.get(exam.pk)} for exam in upcoming]
+            upcoming_rows = [{'exam': exam, 'allocation': allocation_by_exam.get(exam.pk), 'admit_token': signing.dumps({'allocation_id': allocation_by_exam[exam.pk].pk, 'student_id': student.pk}, salt='exams.student.admit-card') if allocation_by_exam.get(exam.pk) else ''} for exam in upcoming]
             history_rows = [{'exam': exam, 'allocation': allocation_by_exam.get(exam.pk)} for exam in history]
-            admit_tokens = {}
-            for allocation in allocations:
-                admit_tokens[allocation.pk] = signing.dumps(
-                    {'allocation_id': allocation.pk, 'student_id': student.pk},
-                    salt='exams.student.admit-card',
-                )
             context.update({
                 'student': student, 'upcoming_rows': upcoming_rows, 'history_rows': history_rows,
                 'upcoming_count': len(upcoming_rows), 'allocated_count': allocations.count(),
-                'admit_card_count': allocations.count(), 'admit_tokens': admit_tokens,
+                'admit_card_count': allocations.count(),
             })
     return render(request, 'exams/student_dashboard.html', context)
 
