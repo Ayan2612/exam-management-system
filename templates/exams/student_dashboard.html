@@ -42,13 +42,14 @@
   </div>
   <section class="student-welcome">
     <div><div class="student-kicker">PERSONAL EXAMINATION DASHBOARD</div><h1>Welcome, {{ student.name|title }}</h1>
-      <p>{{ student.roll_number }} <span>·</span> {{ student.course }} <span>·</span> Semester {{ student.semester }}</p></div>
+      <p>{{ student.roll_number }} <span>·</span> {{ student.course }} <span>·</span> Semester {{ portal_semester }}</p></div>
     <div class="student-session"><i class="bi bi-person-badge"></i> Student profile</div>
   </section>
   <section class="student-profile-strip">
     <div><span>Student name</span><strong>{{ student.name }}</strong></div>
     <div><span>Roll number</span><strong>{{ student.roll_number }}</strong></div>
-    <div><span>Course / Semester</span><strong>{{ student.course }} · Sem {{ student.semester }}</strong></div>
+    <div><span>Course / Semester</span><strong>{{ student.course }} · Sem {{ portal_semester }}</strong></div>
+    <div><span>Admission batch</span><strong>{% if admission_year %}{{ admission_year }}{% else %}Not inferred{% endif %}</strong></div>
     
   </section>
   <section class="student-summary" aria-label="Examination summary">
