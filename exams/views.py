@@ -12,7 +12,8 @@ from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.http import JsonResponse, HttpResponse, FileResponse, HttpResponseForbidden
 from django.views.decorators.http import require_POST
-from django.db.models import Q, Count
+from django.db.models import Q
+from django.db.models.functions import Trim, Count
 from django.core.paginator import Paginator
 from django.core import signing
 from django.core.mail import send_mail
@@ -223,7 +224,7 @@ def student_list(request):
             Q(email__icontains=q)
         )
     if course:
-        students = students.filter(course=course)
+        students = students.annotate(normalized_course=Trim('course')).filter(normalized_course__iexact=course)
     if semester:
         students = students.filter(semester=semester)
 
@@ -231,7 +232,14 @@ def student_list(request):
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
 
-    courses = Student.objects.values_list('course', flat=True).distinct()
+    # Normalize whitespace/case variants so dirty imported values do not create
+    # visually duplicated options in the course filter.
+    course_labels = {}
+    for value in Student.objects.values_list('course', flat=True):
+        normalized = ' '.join((value or '').split())
+        if normalized:
+            course_labels.setdefault(normalized.casefold(), normalized)
+    courses = sorted(course_labels.values(), key=str.casefold)
     return render(request, 'exams/student_list.html', {
         'page_obj': page_obj,
         'q': q,
