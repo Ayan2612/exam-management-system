@@ -128,7 +128,7 @@
       <div class="alert-ems alert-{{ message.tags }}" data-dismiss="true">
         <i class="bi bi-{% if message.tags == 'success' %}check-circle-fill{% elif message.tags == 'danger' %}exclamation-triangle-fill{% elif message.tags == 'warning' %}exclamation-circle-fill{% else %}info-circle-fill{% endif %}"></i>
         <span>{{ message }}</span>
-        <button onclick="this.parentElement.remove()" style="margin-left:auto;background:none;border:none;color:inherit;cursor:pointer;padding:0 4px">✕</button>
+        <button onclick="this.parentElement.remove()" style="margin-left:auto;background:none;border:none;color:inherit;cursor:pointer;padding:0 4px"><i class="bi bi-x-lg" aria-hidden="true"></i></button>
       </div>
       {% endfor %}
     </div>
