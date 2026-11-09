@@ -194,7 +194,7 @@ def import_students_from_csv(file):
         decoded = file.read().decode('utf-8-sig')
         reader = csv.DictReader(io.StringIO(decoded))
 
-        required_cols = {'roll_number', 'name', 'email'}
+        required_cols = {'roll_number', 'name', 'email', 'course', 'semester', 'phone'}
         if not required_cols.issubset(set(reader.fieldnames or [])):
             return 0, [f"Missing required columns. Need: {', '.join(required_cols)}. Got: {', '.join(reader.fieldnames or [])}"]
 
@@ -207,8 +207,8 @@ def import_students_from_csv(file):
                 semester = int(row.get('semester', 1))
                 phone = row.get('phone', '').strip()
 
-                if not roll or not name or not email:
-                    errors.append(f"Row {row_num}: roll_number, name, and email are required.")
+                if not all([roll, name, email, course, row.get('semester', '').strip(), phone]):
+                    errors.append(f"Row {row_num}: all six columns (roll_number, name, email, course, semester, phone) are required.")
                     continue
 
                 student, created = _upsert_imported_student(
@@ -241,7 +241,7 @@ def import_students_from_excel(file):
         ws = wb.active
 
         headers = [str(cell.value).strip().lower() if cell.value else '' for cell in ws[1]]
-        required = ['roll_number', 'name', 'email']
+        required = ['roll_number', 'name', 'email', 'course', 'semester', 'phone']
         for col in required:
             if col not in headers:
                 return 0, [f"Missing required column: '{col}'. Found headers: {headers}"]
@@ -258,8 +258,8 @@ def import_students_from_excel(file):
                 semester = int(semester_val) if semester_val else 1
                 phone = str(row[col_idx.get('phone', -1)] if 'phone' in col_idx and col_idx['phone'] < len(row) else '' or '').strip()
 
-                if not roll or not name or not email:
-                    errors.append(f"Row {row_num}: Empty required field.")
+                if not all([roll, name, email, course, semester_val, phone]):
+                    errors.append(f"Row {row_num}: all six columns (roll_number, name, email, course, semester, phone) are required.")
                     continue
 
                 _upsert_imported_student(
