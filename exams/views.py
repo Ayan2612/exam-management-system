@@ -12,8 +12,8 @@ from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.http import JsonResponse, HttpResponse, FileResponse, HttpResponseForbidden
 from django.views.decorators.http import require_POST
-from django.db.models import Q
-from django.db.models.functions import Trim, Count
+from django.db.models import Q, Count
+from django.db.models.functions import Trim
 from django.core.paginator import Paginator
 from django.core import signing
 from django.core.mail import send_mail
