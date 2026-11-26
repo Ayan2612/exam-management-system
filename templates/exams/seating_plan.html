@@ -223,7 +223,27 @@
   studentInputs.forEach(input => input.addEventListener('change', () => updateCounters(updateRooms(currentAvailability))));
   document.getElementById('selectAllStudents')?.addEventListener('click', () => {
     studentInputs.forEach(input => { if (!input.disabled && !input.closest('label').hidden) input.checked = true; });
-    updateCounters(updateRooms(currentAvailability));</script>
+    updateCounters(updateRooms(currentAvailability));
+  });
+  document.getElementById('deselectAllStudents')?.addEventListener('click', () => {
+    studentInputs.forEach(input => { input.checked = false; });
+    updateCounters(updateRooms(currentAvailability));
+  });
+  document.getElementById('allocationForm')?.addEventListener('submit', event => {
+    const selected = studentInputs.filter(input => input.checked);
+    if (!selectedExam() || selected.length === 0 || selected.some(input => input.disabled)) {
+      event.preventDefault();
+      alert('Select an exam and at least one eligible student. Students with schedule conflicts cannot be allocated.');
+    }
+  });
+  if (selectedExam()) {
+    render(criteria[selectedExam()] || null);
+    refreshAvailability();
+    refreshTimer = setInterval(refreshAvailability, 10000);
+  } else {
+    render(null);
+  }
+</script>
 {% endblock %}
 
 {% endblock %}
