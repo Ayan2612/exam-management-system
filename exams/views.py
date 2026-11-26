@@ -541,7 +541,15 @@ def seating_plan(request):
     return render(request, 'exams/seating_plan.html', {
         'form': form,
         'rooms_data': json.dumps(rooms_data),
-        'exam_criteria': json.dumps({}),
+        'exam_criteria': json.dumps({
+            str(exam.pk): {
+                'course': exam.target_course or '',
+                'semester': exam.target_semester,
+            }
+            for exam in form.fields['exam'].queryset.only(
+                'pk', 'target_course', 'target_semester'
+            )
+        }),
         'students_data': json.dumps([
             {'id': student.pk, 'course': student.course, 'semester': student.semester}
             for student in Student.objects.only('pk', 'course', 'semester')
