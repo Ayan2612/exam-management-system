@@ -10,6 +10,7 @@
 <!-- Hidden rooms data for JS -->
 <script id="roomsData" type="application/json">{{ rooms_data|safe }}</script>
 <script id="examCriteria" type="application/json">{{ exam_criteria|safe }}</script>
+<script id="studentsData" type="application/json">{{ students_data|safe }}</script>
 
 <form method="post" novalidate id="allocationForm">
   {% csrf_token %}
@@ -117,6 +118,8 @@
 {% block extra_js %}
 <script>
   const criteria = JSON.parse(document.getElementById('examCriteria')?.textContent || '{}');
+  const students = JSON.parse(document.getElementById('studentsData')?.textContent || '[]');
+  const studentById = new Map(students.map(student => [String(student.id), student]));
   const rooms = JSON.parse(document.getElementById('roomsData')?.textContent || '[]');
   const examSelect = document.getElementById('id_exam');
   const studentInputs = [...document.querySelectorAll('.student-checkbox')];
@@ -130,27 +133,45 @@
 
   function updateStudents(data) {
     const examInfo = criteria[selectedExam()] || {};
+    const targetCourse = data?.target_course ?? examInfo.course ?? '';
+    const targetSemester = data?.target_semester ?? examInfo.semester ?? null;
     const conflicts = data?.student_conflicts || examInfo.student_conflicts || {};
     let eligibleCount = 0;
+    let scheduledCount = 0;
+
     studentInputs.forEach(input => {
       const label = input.closest('label');
       const reason = label?.querySelector('.student-conflict-reason');
-      const eligibleByCriteria = (!examInfo.course || input.dataset.course === examInfo.course)
-        && (examInfo.semester == null || examInfo.semester === '' || Number(input.dataset.semester) === Number(examInfo.semester));
-      const conflict = conflicts[String(input.value)];
+      const student = studentById.get(String(input.value));
+      const courseMatches = !!student && (!targetCourse || student.course === targetCourse);
+      const semesterMatches = !!student && (
+        targetSemester == null || targetSemester === ''
+        || Number(student.semester) === Number(targetSemester)
+      );
+      const eligibleByCriteria = courseMatches && semesterMatches;
+      const conflict = eligibleByCriteria ? conflicts[String(input.value)] : null;
       const available = !!selectedExam() && eligibleByCriteria && !conflict;
-      label.hidden = !selectedExam() || (!eligibleByCriteria && !conflict);
+
+      label.hidden = !selectedExam() || !eligibleByCriteria;
       input.disabled = !available;
       if (!available) input.checked = false;
-      if (reason) { reason.hidden = !conflict; reason.textContent = conflict || ''; }
+      if (reason) {
+        reason.hidden = !conflict;
+        reason.textContent = conflict || '';
+      }
       const name = label?.querySelector('.student-choice-name');
       if (name) name.style.color = conflict ? '#dc2626' : 'var(--text-secondary)';
       label.style.cursor = available ? 'pointer' : 'not-allowed';
-      if (available) eligibleCount++;
+
+      if (eligibleByCriteria) {
+        eligibleCount++;
+        if (conflict) scheduledCount++;
+      }
     });
-    const conflictCount = Object.keys(conflicts).length;
+
     document.getElementById('eligibleStudentCount').textContent = selectedExam()
-      ? eligibleCount + ' eligible students' + (conflictCount ? ' · ' + conflictCount + ' already scheduled' : '')
+      ? (eligibleCount - scheduledCount) + ' eligible students'
+        + (scheduledCount ? ' · ' + scheduledCount + ' already scheduled' : '')
       : 'Select an exam first';
   }
 
