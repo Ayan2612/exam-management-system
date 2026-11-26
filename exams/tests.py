@@ -318,3 +318,85 @@ class StudentInputValidationTests(TestCase):
         })
         self.assertFalse(form.is_valid())
         self.assertIn('phone', form.errors)
+
+
+class SeatingConflictAndCapacityTests(TestCase):
+    def setUp(self):
+        from datetime import date, time
+        from .models import Room
+        self.date = date(2026, 12, 15)
+        self.room = Room.objects.create(room_number='LIVE101', building='Block A', capacity=8)
+        self.exam = Exam.objects.create(
+            subject='Mathematics', exam_date=self.date,
+            start_time=time(10), end_time=time(13),
+            target_course='B.Tech CSE', target_semester=5,
+        )
+        self.student = Student.objects.create(
+            roll_number='992401030777', name='Already Booked',
+            email='already.booked@example.com', course='B.Tech CSE', semester=5,
+        )
+
+    def test_same_exam_student_is_reported_as_already_scheduled(self):
+        from .models import SeatingAllocation
+        from .forms import SeatingAllocationForm
+        SeatingAllocation.objects.create(
+            student=self.student, exam=self.exam, room=self.room, seat_number=1,
+        )
+        form = SeatingAllocationForm(data={
+            'exam': self.exam.pk, 'rooms': [self.room.pk], 'students': [self.student.pk],
+        })
+        self.assertFalse(form.is_valid())
+        self.assertIn('already scheduled for this exam', str(form.non_field_errors()))
+
+    def test_different_overlapping_exam_student_is_rejected(self):
+        from datetime import time
+        from .models import SeatingAllocation
+        from .forms import SeatingAllocationForm
+        other = Exam.objects.create(
+            subject='Physics', exam_date=self.date,
+            start_time=time(12), end_time=time(14),
+            target_course='B.Tech CSE', target_semester=5,
+        )
+        SeatingAllocation.objects.create(
+            student=self.student, exam=other, room=self.room, seat_number=1,
+        )
+        form = SeatingAllocationForm(data={
+            'exam': self.exam.pk, 'rooms': [self.room.pk], 'students': [self.student.pk],
+        })
+        self.assertFalse(form.is_valid())
+        self.assertIn('already have exam scheduled: Physics', str(form.non_field_errors()))
+
+    def test_non_overlapping_exam_does_not_block_student(self):
+        from datetime import time
+        from .models import SeatingAllocation
+        from .forms import SeatingAllocationForm
+        other = Exam.objects.create(
+            subject='Earlier Exam', exam_date=self.date,
+            start_time=time(8), end_time=time(10),
+            target_course='B.Tech CSE', target_semester=5,
+        )
+        SeatingAllocation.objects.create(
+            student=self.student, exam=other, room=self.room, seat_number=1,
+        )
+        form = SeatingAllocationForm(data={
+            'exam': self.exam.pk, 'rooms': [self.room.pk], 'students': [self.student.pk],
+        })
+        self.assertTrue(form.is_valid(), form.errors)
+
+    def test_availability_endpoint_reports_room_usage_and_student_conflict(self):
+        from django.contrib.auth.models import User
+        from django.urls import reverse
+        from .models import SeatingAllocation
+        admin = User.objects.create_superuser(
+            username='liveadmin', email='liveadmin@example.com', password='LiveAdmin!2026',
+        )
+        self.client.force_login(admin)
+        SeatingAllocation.objects.create(
+            student=self.student, exam=self.exam, room=self.room, seat_number=1,
+        )
+        response = self.client.get(reverse('seating_availability', args=[self.exam.pk]))
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertIn(str(self.student.pk), data['student_conflicts'])
+        self.assertEqual(data['rooms'][str(self.room.pk)]['occupied'], 1)
+        self.assertEqual(data['rooms'][str(self.room.pk)]['available'], 7)
