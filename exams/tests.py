@@ -336,6 +336,30 @@ class SeatingConflictAndCapacityTests(TestCase):
             email='already.booked@example.com', course='B.Tech CSE', semester=5,
         )
 
+    def test_students_from_other_semesters_are_rejected_for_allocation(self):
+        from .forms import SeatingAllocationForm
+        wrong_semester = Student.objects.create(
+            roll_number='992401030778', name='Semester One',
+            email='semester.one@example.com', course='B.Tech CSE', semester=1,
+        )
+        form = SeatingAllocationForm(data={
+            'exam': self.exam.pk, 'rooms': [self.room.pk], 'students': [wrong_semester.pk],
+        })
+        self.assertFalse(form.is_valid())
+        self.assertIn('do not meet this exam', str(form.non_field_errors()))
+
+    def test_students_from_other_courses_are_rejected_for_allocation(self):
+        from .forms import SeatingAllocationForm
+        wrong_course = Student.objects.create(
+            roll_number='992401030779', name='ECE Semester Five',
+            email='ece.semester.five@example.com', course='B.Tech ECE', semester=5,
+        )
+        form = SeatingAllocationForm(data={
+            'exam': self.exam.pk, 'rooms': [self.room.pk], 'students': [wrong_course.pk],
+        })
+        self.assertFalse(form.is_valid())
+        self.assertIn('do not meet this exam', str(form.non_field_errors()))
+
     def test_same_exam_student_is_reported_as_already_scheduled(self):
         from .models import SeatingAllocation
         from .forms import SeatingAllocationForm
@@ -398,5 +422,7 @@ class SeatingConflictAndCapacityTests(TestCase):
         self.assertEqual(response.status_code, 200)
         data = response.json()
         self.assertIn(str(self.student.pk), data['student_conflicts'])
+        self.assertEqual(data['target_course'], 'B.Tech CSE')
+        self.assertEqual(data['target_semester'], 5)
         self.assertEqual(data['rooms'][str(self.room.pk)]['occupied'], 1)
         self.assertEqual(data['rooms'][str(self.room.pk)]['available'], 7)
