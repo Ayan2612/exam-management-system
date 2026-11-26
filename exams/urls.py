@@ -49,6 +49,7 @@ urlpatterns = [
 
     # ── Seating Allocation ─────────────────────────
     path('seating/', views.seating_plan, name='seating_plan'),
+    path('seating/availability/<int:exam_id>/', views.seating_availability, name='seating_availability'),
     path('seating/<int:exam_id>/', views.seating_detail, name='seating_detail'),
     path('seating/<int:exam_id>/clear/', views.clear_seating, name='clear_seating'),
 
