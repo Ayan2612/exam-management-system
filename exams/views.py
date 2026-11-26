@@ -452,77 +452,42 @@ def exam_delete(request, pk):
 
 @staff_required
 def seating_plan(request):
-    """Create seating allocation for an exam"""
+    """Create seating allocation for an exam with live conflict/availability data."""
     if request.method == 'POST':
         form = SeatingAllocationForm(request.POST)
         if form.is_valid():
             exam = form.cleaned_data['exam']
             rooms = form.cleaned_data['rooms']
             students = form.cleaned_data['students']
-
             try:
-                # Serialize allocations targeting the same physical rooms. On databases
-                # supporting row locks, a second admin waits and recalculates availability.
                 with transaction.atomic():
                     locked_room_ids = list(
                         Room.objects.select_for_update()
                         .filter(pk__in=[room.pk for room in rooms], is_active=True)
-                        .order_by('pk')
-                        .values_list('pk', flat=True)
+                        .order_by('pk').values_list('pk', flat=True)
                     )
                     if len(locked_room_ids) != len(rooms):
                         raise ValueError("One or more selected rooms are no longer active.")
                     allocations = allocate_seats(exam, rooms, students)
                     created, skipped = save_allocations(allocations)
-
-                messages.success(
-                    request,
-                    f'Seating plan generated! {created} seats allocated, {skipped} already existed.'
-                )
+                messages.success(request, f'Seating plan generated! {created} seats allocated, {skipped} already existed.')
                 return redirect('seating_detail', exam_id=exam.id)
-
-            except ValueError as e:
-                messages.error(request, str(e))
+            except ValueError as error:
+                messages.error(request, str(error))
         else:
             messages.error(request, 'Please correct the errors.')
     else:
         form = SeatingAllocationForm()
 
-    # Build capacity info for real-time display
     rooms_data = [
-        {'id': r.id, 'room_number': r.room_number, 'building': r.building, 'capacity': r.capacity}
-        for r in Room.objects.filter(is_active=True)
+        {'id': room.pk, 'room_number': room.room_number, 'building': room.building, 'capacity': int(room.capacity or 0)}
+        for room in Room.objects.filter(is_active=True)
     ]
-    exam_criteria = {}
-    scheduled_exams = Exam.objects.filter(status='scheduled')
-    active_rooms = list(Room.objects.filter(is_active=True))
-    for item in scheduled_exams:
-        overlapping_exam_ids = Exam.objects.filter(
-            exam_date=item.exam_date,
-            start_time__lt=item.end_time,
-            end_time__gt=item.start_time,
-        ).values_list('pk', flat=True)
-        occupied_by_room = {}
-        for room_id, seat_number in SeatingAllocation.objects.filter(
-            room_id__in=[room.pk for room in active_rooms],
-            exam_id__in=overlapping_exam_ids,
-        ).values_list('room_id', 'seat_number'):
-            occupied_by_room.setdefault(room_id, set()).add(seat_number)
-        exam_criteria[str(item.pk)] = {
-            'course': item.target_course,
-            'semester': item.target_semester,
-            'rooms': {
-                str(room.pk): {
-                    'capacity': room.capacity,
-                    'available': max(room.capacity - len(occupied_by_room.get(room.pk, set())), 0),
-                }
-                for room in active_rooms
-            },
-        }
     return render(request, 'exams/seating_plan.html', {
         'form': form,
         'rooms_data': json.dumps(rooms_data),
-        'exam_criteria': json.dumps(exam_criteria),
+        'exam_criteria': json.dumps({}),
+        'availability_url_template': reverse('seating_availability', args=[0]),
         'total_students': Student.objects.count(),
     })
 
