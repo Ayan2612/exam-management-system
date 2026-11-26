@@ -23,26 +23,29 @@ from reportlab.lib.colors import HexColor
 # ─────────────────────────────────────────────
 
 def room_capacity_available(exam, rooms):
-    """Count free physical seats after all overlapping exams in the same rooms."""
+    """Count free physical seats after all exams overlapping this exact time window."""
     from .models import Exam, SeatingAllocation
 
     active_rooms = [room for room in rooms if room.is_active]
     room_ids = [room.pk for room in active_rooms]
     if not room_ids:
         return 0
+
     overlapping_ids = Exam.objects.filter(
         exam_date=exam.exam_date,
         start_time__lt=exam.end_time,
         end_time__gt=exam.start_time,
-    ).values_list('pk', flat=True)
+    ).exclude(status='cancelled').values_list('pk', flat=True)
     occupied = {}
-    allocations = SeatingAllocation.objects.filter(
+    for room_id, seat_number in SeatingAllocation.objects.filter(
         room_id__in=room_ids, exam_id__in=overlapping_ids
-    ).values_list('room_id', 'seat_number')
-    for room_id, seat_number in allocations:
+    ).values_list('room_id', 'seat_number').distinct():
         occupied.setdefault(room_id, set()).add(seat_number)
-    return sum(max(room.capacity - len(occupied.get(room.pk, set())), 0) for room in active_rooms)
 
+    return sum(
+        max(int(room.capacity or 0) - len(occupied.get(room.pk, set())), 0)
+        for room in active_rooms
+    )
 
 
 def allocate_seats(exam, rooms, students):
