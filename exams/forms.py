@@ -115,7 +115,7 @@ class CSVUploadForm(forms.Form):
 
 
 class SeatingAllocationForm(forms.Form):
-    """Allocate only students who meet the selected exam's course/semester criteria."""
+    """Allocate only eligible students with no existing overlapping exam allocation."""
     exam = forms.ModelChoiceField(
         queryset=Exam.objects.filter(status='scheduled'),
         widget=forms.Select(attrs={'class': 'form-select form-select-lg'}),
@@ -132,7 +132,7 @@ class SeatingAllocationForm(forms.Form):
         queryset=Student.objects.all(),
         widget=forms.CheckboxSelectMultiple(attrs={'class': 'student-checkbox'}),
         label='Select Eligible Students',
-        help_text='Students are filtered by the selected exam course and semester.',
+        help_text='Students already scheduled in an overlapping time slot are unavailable.',
     )
 
     def clean(self):
@@ -151,22 +151,30 @@ class SeatingAllocationForm(forms.Form):
                     "Some selected students do not meet this exam's course/semester criteria. "
                     "Only eligible students can be allocated."
                 )
-        if exam and students:
-            from .models import Exam as ExamModel
-            overlapping_exam_ids = ExamModel.objects.filter(
+
+            overlapping_exam_ids = Exam.objects.filter(
                 exam_date=exam.exam_date,
                 start_time__lt=exam.end_time,
                 end_time__gt=exam.start_time,
-            ).exclude(pk=exam.pk).values_list('pk', flat=True)
+            ).exclude(status='cancelled').values_list('pk', flat=True)
             clashes = SeatingAllocation.objects.filter(
                 student__in=students, exam_id__in=overlapping_exam_ids
-            ).select_related('student', 'exam')
+            ).select_related('student', 'exam').order_by('student__roll_number')
             if clashes.exists():
                 clash = clashes.first()
+                if clash.exam_id == exam.pk:
+                    reason = f"already scheduled for this exam ({clash.exam.subject})"
+                else:
+                    reason = (
+                        f"already have exam scheduled: {clash.exam.subject} "
+                        f"({clash.exam.start_time.strftime('%I:%M %p')}–"
+                        f"{clash.exam.end_time.strftime('%I:%M %p')})"
+                    )
                 raise forms.ValidationError(
-                    f"{clash.student.name} ({clash.student.roll_number}) is already allocated "
-                    f"to {clash.exam.subject} during an overlapping time slot."
+                    f"{clash.student.name} ({clash.student.roll_number}) is {reason}. "
+                    "Choose students without a time conflict."
                 )
+
         if rooms and students and exam:
             from .utils import room_capacity_available
             available = room_capacity_available(exam, rooms)
