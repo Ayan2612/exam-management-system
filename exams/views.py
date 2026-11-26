@@ -488,6 +488,8 @@ def seating_availability(request, exam_id):
 
     return JsonResponse({
         'exam_id': exam.pk,
+        'target_course': exam.target_course or '',
+        'target_semester': exam.target_semester,
         'student_conflicts': conflicts,
         'rooms': {
             str(room.pk): {
@@ -540,6 +542,10 @@ def seating_plan(request):
         'form': form,
         'rooms_data': json.dumps(rooms_data),
         'exam_criteria': json.dumps({}),
+        'students_data': json.dumps([
+            {'id': student.pk, 'course': student.course, 'semester': student.semester}
+            for student in Student.objects.only('pk', 'course', 'semester')
+        ]),
         'availability_url_template': reverse('seating_availability', args=[0]),
         'total_students': Student.objects.count(),
     })
