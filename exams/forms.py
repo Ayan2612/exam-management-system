@@ -172,7 +172,7 @@ class SeatingAllocationForm(forms.Form):
                     )
                 raise forms.ValidationError(
                     f"{clash.student.name} ({clash.student.roll_number}) is {reason}. "
-                    "Choose students without a time conflict."
+                    "This student already has an allocation in an overlapping time slot. Choose students without a time conflict."
                 )
 
         if rooms and students and exam:
